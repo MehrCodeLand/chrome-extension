@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Link Saver</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Link Saver</h1>
+      <button id="add-btn" class="btn add-btn" title="Add New Link">+</button>
+    </div>
+    
+    <div id="add-form" class="form-container hidden">
+      <input type="text" id="link-name" placeholder="Link Name" class="input">
+      <input type="url" id="link-url" placeholder="https://example.com" class="input">
+      <div class="form-buttons">
+        <button id="save-link-btn" class="btn save-btn">Save</button>
+        <button id="cancel-btn" class="btn cancel-btn">Cancel</button>
+      </div>
+    </div>
+    
+    <div id="edit-form" class="form-container hidden">
+      <input type="text" id="edit-name" placeholder="Link Name" class="input">
+      <input type="url" id="edit-url" placeholder="https://example.com" class="input">
+      <input type="hidden" id="edit-id">
+      <div class="form-buttons">
+        <button id="update-link-btn" class="btn save-btn">Update</button>
+        <button id="cancel-edit-btn" class="btn cancel-btn">Cancel</button>
+      </div>
+    </div>
+    
+    <div class="search-container">
+      <input type="text" id="search" placeholder="Search links..." class="input search-input">
+    </div>
+    
+    <div class="links-container">
+      <div id="links-list"></div>
+      <div id="no-links" class="no-links">
+        <p>No links saved yet. Copy a link or add one manually.</p>
+      </div>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

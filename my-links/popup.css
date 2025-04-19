@@ -1,0 +1,222 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+  
+  :root {
+    --primary-color: #a5c8e1;
+    --primary-dark: #7ba7c9;
+    --secondary-color: #f3d7ca;
+    --text-color: #333;
+    --light-text: #666;
+    --border-color: #e0e0e0;
+    --bg-color: #f9f9f9;
+    --error-color: #f8a5a5;
+    --success-color: #a5e1ad;
+  }
+  
+  body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    width: 350px;
+    min-height: 450px;
+    overflow-x: hidden;
+  }
+  
+  .container {
+    width: 100%;
+    min-height: 450px;
+    padding: 16px;
+  }
+  
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+  }
+  
+  .header h1 {
+    font-size: 20px;
+    color: var(--primary-dark);
+    font-weight: 600;
+  }
+  
+  .btn {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease;
+  }
+  
+  .add-btn {
+    background-color: var(--primary-color);
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+  
+  .add-btn:hover {
+    background-color: var(--primary-dark);
+  }
+  
+  .form-container {
+    background-color: white;
+    padding: 12px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 16px;
+  }
+  
+  .input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 14px;
+  }
+  
+  .input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+  }
+  
+  .form-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  
+  .save-btn {
+    background-color: var(--primary-color);
+    color: white;
+  }
+  
+  .save-btn:hover {
+    background-color: var(--primary-dark);
+  }
+  
+  .cancel-btn {
+    background-color: var(--light-text);
+    color: white;
+  }
+  
+  .cancel-btn:hover {
+    background-color: #555;
+  }
+  
+  .search-container {
+    margin-bottom: 16px;
+  }
+  
+  .search-input {
+    background-color: white;
+  }
+  
+  .links-container {
+    max-height: 300px;
+    overflow-y: auto;
+  }
+  
+  .link-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    background-color: white;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease;
+  }
+  
+  .link-item:hover {
+    transform: translateY(-2px);
+  }
+  
+  .link-info {
+    flex: 1;
+    overflow: hidden;
+  }
+  
+  .link-name {
+    font-weight: 500;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .link-url {
+    color: var(--light-text);
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .link-actions {
+    display: flex;
+    gap: 8px;
+  }
+  
+  .action-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--light-text);
+    font-size: 14px;
+    padding: 4px;
+    border-radius: 4px;
+  }
+  
+  .edit-btn:hover {
+    color: var(--primary-dark);
+    background-color: rgba(165, 200, 225, 0.1);
+  }
+  
+  .delete-btn:hover {
+    color: #e15241;
+    background-color: rgba(225, 82, 65, 0.1);
+  }
+  
+  .no-links {
+    text-align: center;
+    color: var(--light-text);
+    padding: 24px 0;
+  }
+  
+  .hidden {
+    display: none;
+  }
+  
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: var(--bg-color);
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 3px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-dark);
+  }
