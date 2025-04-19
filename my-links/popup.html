@@ -10,21 +10,47 @@
   <div class="container">
     <div class="header">
       <h1>Link Saver</h1>
-      <button id="add-btn" class="btn add-btn" title="Add New Link">+</button>
+      <div class="header-actions">
+        <button id="add-tag-btn" class="btn tag-btn" title="Add New Tag">#</button>
+        <button id="add-btn" class="btn add-btn" title="Add New Link">+</button>
+      </div>
     </div>
     
+    <!-- Add Tag Form -->
+    <div id="add-tag-form" class="form-container hidden">
+      <input type="text" id="tag-name" placeholder="Tag Name" class="input">
+      <div class="form-buttons">
+        <button id="save-tag-btn" class="btn save-btn">Save</button>
+        <button id="cancel-tag-btn" class="btn cancel-btn">Cancel</button>
+      </div>
+    </div>
+    
+    <!-- Add Link Form -->
     <div id="add-form" class="form-container hidden">
       <input type="text" id="link-name" placeholder="Link Name" class="input">
       <input type="url" id="link-url" placeholder="https://example.com" class="input">
+      <div class="tag-selection">
+        <label for="link-tag">Tag:</label>
+        <select id="link-tag" class="input tag-select">
+          <option value="general">General</option>
+        </select>
+      </div>
       <div class="form-buttons">
         <button id="save-link-btn" class="btn save-btn">Save</button>
         <button id="cancel-btn" class="btn cancel-btn">Cancel</button>
       </div>
     </div>
     
+    <!-- Edit Link Form -->
     <div id="edit-form" class="form-container hidden">
       <input type="text" id="edit-name" placeholder="Link Name" class="input">
       <input type="url" id="edit-url" placeholder="https://example.com" class="input">
+      <div class="tag-selection">
+        <label for="edit-tag">Tag:</label>
+        <select id="edit-tag" class="input tag-select">
+          <option value="general">General</option>
+        </select>
+      </div>
       <input type="hidden" id="edit-id">
       <div class="form-buttons">
         <button id="update-link-btn" class="btn save-btn">Update</button>
@@ -34,6 +60,14 @@
     
     <div class="search-container">
       <input type="text" id="search" placeholder="Search links..." class="input search-input">
+    </div>
+    
+    <div class="tag-filter-container">
+      <label for="tag-filter">Filter by tag:</label>
+      <select id="tag-filter" class="input tag-select">
+        <option value="all">All Tags</option>
+        <option value="general">General</option>
+      </select>
     </div>
     
     <div class="links-container">

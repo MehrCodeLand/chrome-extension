@@ -46,6 +46,11 @@ body {
   font-weight: 600;
 }
 
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .btn {
   padding: 8px 12px;
   border: none;
@@ -68,8 +73,25 @@ body {
   padding: 0;
 }
 
+.tag-btn {
+  background-color: var(--secondary-color);
+  color: var(--text-color);
+  font-size: 16px;
+  font-weight: bold;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
 .add-btn:hover {
   background-color: var(--primary-dark);
+}
+
+.tag-btn:hover {
+  background-color: #e8c4b0;
 }
 
 .form-container {
@@ -126,6 +148,52 @@ body {
   background-color: white;
 }
 
+.tag-filter-container {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+  background-color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.tag-filter-container label {
+  margin-right: 10px;
+  font-size: 14px;
+  color: var(--text-color);
+}
+
+.tag-selection {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.tag-selection label {
+  margin-right: 10px;
+  font-size: 14px;
+  color: var(--text-color);
+}
+
+.tag-select {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background-color: white;
+}
+
+.tag-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  margin-left: 8px;
+  background-color: var(--secondary-color);
+  color: var(--text-color);
+}
+
 .links-container {
   max-height: 300px;
   overflow-y: auto;
@@ -150,6 +218,7 @@ body {
 .link-info {
   flex: 1;
   overflow: hidden;
+  cursor: pointer;
 }
 
 .link-name {
