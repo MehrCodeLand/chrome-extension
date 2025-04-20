@@ -1,0 +1,463 @@
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('NoteDotMe popup loaded');
+    
+    // DOM Elements
+    const addBtn = document.getElementById('add-btn');
+    const addTagBtn = document.getElementById('add-tag-btn');
+    const addForm = document.getElementById('add-form');
+    const addTagForm = document.getElementById('add-tag-form');
+    const editForm = document.getElementById('edit-form');
+    const notesList = document.getElementById('notes-list');
+    const noNotes = document.getElementById('no-notes');
+    const saveNoteBtn = document.getElementById('save-note-btn');
+    const saveTagBtn = document.getElementById('save-tag-btn');
+    const cancelBtn = document.getElementById('cancel-btn');
+    const cancelTagBtn = document.getElementById('cancel-tag-btn');
+    const updateNoteBtn = document.getElementById('update-note-btn');
+    const cancelEditBtn = document.getElementById('cancel-edit-btn');
+    const noteTitleInput = document.getElementById('note-title');
+    const noteContentInput = document.getElementById('note-content');
+    const noteTagSelect = document.getElementById('note-tag');
+    const tagNameInput = document.getElementById('tag-name');
+    const editTitleInput = document.getElementById('edit-title');
+    const editContentInput = document.getElementById('edit-content');
+    const editTagSelect = document.getElementById('edit-tag');
+    const editIdInput = document.getElementById('edit-id');
+    const searchInput = document.getElementById('search');
+    const tagFilter = document.getElementById('tag-filter');
+  
+    // Initialize storage and load data
+    initializeStorage(function() {
+      loadTags(function() {
+        loadNotes();
+      });
+    });
+  
+    // Event Listeners
+    addBtn.addEventListener('click', toggleAddForm);
+    addTagBtn.addEventListener('click', toggleAddTagForm);
+    saveNoteBtn.addEventListener('click', saveNote);
+    saveTagBtn.addEventListener('click', saveTag);
+    cancelBtn.addEventListener('click', toggleAddForm);
+    cancelTagBtn.addEventListener('click', toggleAddTagForm);
+    updateNoteBtn.addEventListener('click', updateNote);
+    cancelEditBtn.addEventListener('click', () => {
+      editForm.classList.add('hidden');
+    });
+    searchInput.addEventListener('input', function() {
+      filterNotes();
+    });
+    tagFilter.addEventListener('change', function() {
+      filterNotes();
+    });
+  
+    // Functions
+    function initializeStorage(callback) {
+      chrome.storage.sync.get(['notes', 'tags'], function(result) {
+        let updates = {};
+        let needsUpdate = false;
+        
+        // Initialize notes array if it doesn't exist
+        if (!result.notes) {
+          updates.notes = [];
+          needsUpdate = true;
+          console.log('Initializing notes array');
+        }
+        
+        // Initialize tags array if it doesn't exist
+        if (!result.tags) {
+          updates.tags = [
+            { id: 'general', name: 'General', color: 'var(--blue-note)' }
+          ];
+          needsUpdate = true;
+          console.log('Initializing tags with default');
+        }
+        
+        if (needsUpdate) {
+          chrome.storage.sync.set(updates, function() {
+            console.log('Storage initialized');
+            if (callback) callback();
+          });
+        } else {
+          console.log('Storage already initialized');
+          if (callback) callback();
+        }
+      });
+    }
+  
+    function toggleAddForm() {
+      // Hide tag form if visible
+      addTagForm.classList.add('hidden');
+      editForm.classList.add('hidden');
+      
+      // Toggle add note form
+      addForm.classList.toggle('hidden');
+      if (!addForm.classList.contains('hidden')) {
+        noteTitleInput.focus();
+      } else {
+        // Clear form
+        noteTitleInput.value = '';
+        noteContentInput.value = '';
+        noteTagSelect.value = 'general';
+      }
+    }
+  
+    function toggleAddTagForm() {
+      // Hide other forms if visible
+      addForm.classList.add('hidden');
+      editForm.classList.add('hidden');
+      
+      // Toggle add tag form
+      addTagForm.classList.toggle('hidden');
+      if (!addTagForm.classList.contains('hidden')) {
+        tagNameInput.focus();
+      } else {
+        // Clear form
+        tagNameInput.value = '';
+      }
+    }
+  
+    function loadTags(callback) {
+      chrome.storage.sync.get(['tags'], function(result) {
+        const tags = result.tags || [];
+        console.log('Loaded tags:', tags);
+        
+        // Update tag selects
+        updateTagSelects(tags);
+        
+        if (callback) callback();
+      });
+    }
+  
+    function updateTagSelects(tags) {
+      // Clear tag filter select (keeping only "All Tags")
+      while (tagFilter.options.length > 1) {
+        tagFilter.remove(1);
+      }
+      
+      // Clear note tag selects completely
+      noteTagSelect.innerHTML = '';
+      editTagSelect.innerHTML = '';
+      
+      // Add tags to all selects
+      tags.forEach(tag => {
+        // Add to tag filter
+        const filterOption = document.createElement('option');
+        filterOption.value = tag.id;
+        filterOption.textContent = tag.name;
+        tagFilter.appendChild(filterOption);
+        
+        // Add to note tag select
+        const noteOption = document.createElement('option');
+        noteOption.value = tag.id;
+        noteOption.textContent = tag.name;
+        noteTagSelect.appendChild(noteOption);
+        
+        // Add to edit tag select
+        const editOption = document.createElement('option');
+        editOption.value = tag.id;
+        editOption.textContent = tag.name;
+        editTagSelect.appendChild(editOption);
+      });
+      
+      // Set default values
+      if (tags.length > 0) {
+        noteTagSelect.value = tags[0].id;
+        editTagSelect.value = tags[0].id;
+      }
+    }
+  
+    function loadNotes() {
+      filterNotes();
+    }
+  
+    function filterNotes() {
+      const searchTerm = searchInput.value.trim().toLowerCase();
+      const selectedTagId = tagFilter.value;
+      
+      chrome.storage.sync.get(['notes', 'tags'], function(result) {
+        const notes = result.notes || [];
+        const tags = result.tags || [];
+        
+        console.log('Filtering notes. Total:', notes.length);
+        
+        // Filter notes based on search term and selected tag
+        let filteredNotes = notes.filter(note => {
+          const matchesSearch = searchTerm === '' || 
+                               note.title.toLowerCase().includes(searchTerm) || 
+                               note.content.toLowerCase().includes(searchTerm);
+          const matchesTag = selectedTagId === 'all' || note.tagId === selectedTagId;
+          
+          return matchesSearch && matchesTag;
+        });
+        
+        // Update UI
+        updateNotesUI(filteredNotes, tags);
+      });
+    }
+  
+    function updateNotesUI(notes, tags) {
+      notesList.innerHTML = '';
+      
+      if (notes.length === 0) {
+        noNotes.style.display = 'block';
+        return;
+      }
+      
+      noNotes.style.display = 'none';
+      
+      notes.forEach(note => {
+        const noteElement = createNoteElement(note, tags);
+        notesList.appendChild(noteElement);
+      });
+    }
+  
+    function formatDate(dateString) {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+  
+    function createNoteElement(note, tags) {
+      const noteItem = document.createElement('div');
+      noteItem.className = 'note-item';
+      noteItem.setAttribute('data-id', note.id);
+      
+      // Find tag for this note
+      const tag = tags.find(t => t.id === note.tagId) || tags[0];
+      
+      const noteDate = document.createElement('div');
+      noteDate.className = 'note-date';
+      noteDate.textContent = formatDate(note.date);
+      
+      const noteTitle = document.createElement('div');
+      noteTitle.className = 'note-title';
+      noteTitle.textContent = note.title;
+      
+      // Add tag badge if tag exists
+      if (tag) {
+        const tagBadge = document.createElement('span');
+        tagBadge.className = 'tag-badge';
+        tagBadge.textContent = tag.name;
+        tagBadge.style.backgroundColor = tag.color;
+        noteTitle.appendChild(tagBadge);
+      }
+      
+      const noteContent = document.createElement('div');
+      noteContent.className = 'note-content';
+      noteContent.textContent = note.content;
+      
+      const noteActions = document.createElement('div');
+      noteActions.className = 'note-actions';
+      
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'action-btn copy-btn';
+      copyBtn.innerHTML = '📋';
+      copyBtn.title = 'Copy Note';
+      copyBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        copyNoteToClipboard(note, tag);
+      });
+      
+      const editBtn = document.createElement('button');
+      editBtn.className = 'action-btn edit-btn';
+      editBtn.innerHTML = '✏️';
+      editBtn.title = 'Edit';
+      editBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        showEditForm(note);
+      });
+      
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'action-btn delete-btn';
+      deleteBtn.innerHTML = '🗑️';
+      deleteBtn.title = 'Delete';
+      deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteNote(note.id);
+      });
+      
+      noteActions.appendChild(copyBtn);
+      noteActions.appendChild(editBtn);
+      noteActions.appendChild(deleteBtn);
+      
+      noteItem.appendChild(noteDate);
+      noteItem.appendChild(noteTitle);
+      noteItem.appendChild(noteContent);
+      noteItem.appendChild(noteActions);
+      
+      return noteItem;
+    }
+  
+    function copyNoteToClipboard(note, tag) {
+      const formattedNote = `Date: ${formatDate(note.date)}
+  Title: ${note.title}
+  Note content: ${note.content}
+  Tag: ${tag ? tag.name : 'None'}`;
+      
+      navigator.clipboard.writeText(formattedNote)
+        .then(() => {
+          // Show success feedback
+          chrome.action.setBadgeText({ text: "✓" });
+          chrome.action.setBadgeBackgroundColor({ color: "#4CAF50" });
+          
+          setTimeout(() => {
+            chrome.action.setBadgeText({ text: "" });
+          }, 2000);
+        })
+        .catch(err => {
+          console.error('Error copying to clipboard:', err);
+          alert('Failed to copy note to clipboard');
+        });
+    }
+  
+    function getCurrentUrl(callback) {
+      chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+        callback(tabs[0] ? tabs[0].url : "");
+      });
+    }
+  
+    function saveNote() {
+      const title = noteTitleInput.value.trim();
+      const content = noteContentInput.value.trim();
+      const tagId = noteTagSelect.value;
+      
+      if (!title || !content) {
+        alert('Please enter both title and content');
+        return;
+      }
+      
+      getCurrentUrl(function(currentUrl) {
+        chrome.storage.sync.get(['notes'], function(result) {
+          const notes = result.notes || [];
+          const newNote = {
+            id: Date.now().toString(),
+            title: title,
+            content: content,
+            tagId: tagId,
+            date: new Date().toISOString(),
+            url: currentUrl
+          };
+          
+          notes.unshift(newNote);
+          
+          chrome.storage.sync.set({ notes: notes }, function() {
+            toggleAddForm();
+            filterNotes();
+          });
+        });
+      });
+    }
+  
+    function saveTag() {
+      const name = tagNameInput.value.trim();
+      
+      if (!name) {
+        alert('Please enter a tag name');
+        return;
+      }
+      
+      chrome.storage.sync.get(['tags'], function(result) {
+        const tags = result.tags || [];
+        
+        // Check if tag with same name already exists
+        if (tags.some(tag => tag.name.toLowerCase() === name.toLowerCase())) {
+          alert('A tag with this name already exists');
+          return;
+        }
+        
+        // Generate soft color for the tag
+        const colors = [
+          'var(--yellow-note)', // Yellow
+          'var(--blue-note)',   // Blue
+          'var(--green-note)',  // Green
+          'var(--pink-note)'    // Pink
+        ];
+        const randomColor = colors[Math.floor(Math.random() * colors.length)];
+        
+        const newTag = {
+          id: Date.now().toString(),
+          name: name,
+          color: randomColor
+        };
+        
+        tags.push(newTag);
+        
+        chrome.storage.sync.set({ tags: tags }, function() {
+          toggleAddTagForm();
+          loadTags(function() {
+            filterNotes();
+          });
+        });
+      });
+    }
+  
+    function showEditForm(note) {
+      editTitleInput.value = note.title;
+      editContentInput.value = note.content;
+      editTagSelect.value = note.tagId || 'general';
+      editIdInput.value = note.id;
+      
+      addForm.classList.add('hidden');
+      addTagForm.classList.add('hidden');
+      editForm.classList.remove('hidden');
+      
+      editTitleInput.focus();
+    }
+  
+    function updateNote() {
+      const id = editIdInput.value;
+      const title = editTitleInput.value.trim();
+      const content = editContentInput.value.trim();
+      const tagId = editTagSelect.value;
+      
+      if (!title || !content) {
+        alert('Please enter both title and content');
+        return;
+      }
+      
+      chrome.storage.sync.get(['notes'], function(result) {
+        let notes = result.notes || [];
+        
+        const index = notes.findIndex(note => note.id === id);
+        if (index !== -1) {
+          // Keep the original URL and date
+          const originalUrl = notes[index].url;
+          const originalDate = notes[index].date;
+          
+          notes[index] = {
+            id: id,
+            title: title,
+            content: content,
+            tagId: tagId,
+            date: originalDate,
+            url: originalUrl,
+            updatedAt: new Date().toISOString()
+          };
+          
+          chrome.storage.sync.set({ notes: notes }, function() {
+            editForm.classList.add('hidden');
+            filterNotes();
+          });
+        }
+      });
+    }
+  
+    function deleteNote(id) {
+      if (confirm('Are you sure you want to delete this note?')) {
+        chrome.storage.sync.get(['notes'], function(result) {
+          let notes = result.notes || [];
+          notes = notes.filter(note => note.id !== id);
+          
+          chrome.storage.sync.set({ notes: notes }, function() {
+            filterNotes();
+          });
+        });
+      }
+    }
+  });
