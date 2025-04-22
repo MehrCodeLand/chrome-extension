@@ -13,6 +13,7 @@
       <h1>NoteDotMe</h1>
       <div class="header-actions">
         <button id="add-tag-btn" class="btn tag-btn" title="Add New Tag">#</button>
+        <button id="add-task-btn" class="btn task-btn" title="Tasks Manager">✓</button>
         <button id="add-btn" class="btn add-btn" title="Create New Note">+</button>
       </div>
     </div>
@@ -23,6 +24,32 @@
       <div class="form-buttons">
         <button id="save-tag-btn" class="btn save-btn">Save</button>
         <button id="cancel-tag-btn" class="btn cancel-btn">Cancel</button>
+      </div>
+    </div>
+    
+    <!-- Task Manager Section -->
+    <div id="task-manager" class="form-container hidden">
+      <h3 class="section-title">Task Manager</h3>
+      
+      <!-- Add Task Form -->
+      <div class="task-form">
+        <input type="text" id="task-title" placeholder="Enter task..." class="input">
+        <button id="save-task-btn" class="btn save-btn">Add</button>
+      </div>
+      
+      <!-- Tasks List -->
+      <div class="tasks-container">
+        <h4 class="task-section-title">Current Tasks</h4>
+        <div id="tasks-list" class="tasks-list"></div>
+        <div id="no-tasks" class="no-items">No tasks added yet</div>
+        
+        <h4 class="task-section-title completed-tasks-header">Completed Tasks</h4>
+        <div id="completed-tasks-list" class="tasks-list completed-tasks"></div>
+        <div id="no-completed-tasks" class="no-items">No completed tasks</div>
+      </div>
+      
+      <div class="form-buttons">
+        <button id="close-tasks-btn" class="btn cancel-btn">Close</button>
       </div>
     </div>
     

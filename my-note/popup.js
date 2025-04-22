@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
   console.log('NoteDotMe popup loaded');
   
-  // DOM Elements
+  // DOM Elements - Notes
   const addBtn = document.getElementById('add-btn');
   const addTagBtn = document.getElementById('add-tag-btn');
   const addForm = document.getElementById('add-form');
@@ -25,15 +25,27 @@ document.addEventListener('DOMContentLoaded', function() {
   const editIdInput = document.getElementById('edit-id');
   const searchInput = document.getElementById('search');
   const tagFilter = document.getElementById('tag-filter');
+  
+  // DOM Elements - Tasks
+  const addTaskBtn = document.getElementById('add-task-btn');
+  const taskManager = document.getElementById('task-manager');
+  const taskTitleInput = document.getElementById('task-title');
+  const saveTaskBtn = document.getElementById('save-task-btn');
+  const closeTasksBtn = document.getElementById('close-tasks-btn');
+  const tasksList = document.getElementById('tasks-list');
+  const completedTasksList = document.getElementById('completed-tasks-list');
+  const noTasks = document.getElementById('no-tasks');
+  const noCompletedTasks = document.getElementById('no-completed-tasks');
 
   // Initialize storage and load data
   initializeStorage(function() {
     loadTags(function() {
       loadNotes();
+      loadTasks();
     });
   });
 
-  // Event Listeners
+  // Event Listeners - Notes
   addBtn.addEventListener('click', toggleAddForm);
   addTagBtn.addEventListener('click', toggleAddTagForm);
   saveNoteBtn.addEventListener('click', saveNote);
@@ -50,10 +62,20 @@ document.addEventListener('DOMContentLoaded', function() {
   tagFilter.addEventListener('change', function() {
     filterNotes();
   });
+  
+  // Event Listeners - Tasks
+  addTaskBtn.addEventListener('click', toggleTaskManager);
+  saveTaskBtn.addEventListener('click', saveTask);
+  closeTasksBtn.addEventListener('click', toggleTaskManager);
+  taskTitleInput.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+      saveTask();
+    }
+  });
 
   // Functions
   function initializeStorage(callback) {
-    chrome.storage.sync.get(['notes', 'tags'], function(result) {
+    chrome.storage.sync.get(['notes', 'tags', 'tasks', 'completedTasks'], function(result) {
       let updates = {};
       let needsUpdate = false;
       
@@ -73,6 +95,19 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Initializing tags with default');
       }
       
+      // Initialize tasks arrays if they don't exist
+      if (!result.tasks) {
+        updates.tasks = [];
+        needsUpdate = true;
+        console.log('Initializing tasks array');
+      }
+      
+      if (!result.completedTasks) {
+        updates.completedTasks = [];
+        needsUpdate = true;
+        console.log('Initializing completed tasks array');
+      }
+      
       if (needsUpdate) {
         chrome.storage.sync.set(updates, function() {
           console.log('Storage initialized');
@@ -85,10 +120,201 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
+  function toggleTaskManager() {
+    // Hide other forms
+    addForm.classList.add('hidden');
+    addTagForm.classList.add('hidden');
+    editForm.classList.add('hidden');
+    
+    // Toggle task manager
+    taskManager.classList.toggle('hidden');
+    
+    if (!taskManager.classList.contains('hidden')) {
+      taskTitleInput.focus();
+      loadTasks();
+    } else {
+      // Clear task input
+      taskTitleInput.value = '';
+    }
+  }
+  
+  function loadTasks() {
+    chrome.storage.sync.get(['tasks', 'completedTasks'], function(result) {
+      const tasks = result.tasks || [];
+      const completedTasks = result.completedTasks || [];
+      
+      console.log('Loaded tasks:', tasks.length);
+      console.log('Loaded completed tasks:', completedTasks.length);
+      
+      // Update UI
+      updateTasksUI(tasks, completedTasks);
+    });
+  }
+  
+  function updateTasksUI(tasks, completedTasks) {
+    // Clear lists
+    tasksList.innerHTML = '';
+    completedTasksList.innerHTML = '';
+    
+    // Current tasks
+    if (tasks.length === 0) {
+      noTasks.style.display = 'block';
+    } else {
+      noTasks.style.display = 'none';
+      tasks.forEach(task => {
+        const taskElement = createTaskElement(task, false);
+        tasksList.appendChild(taskElement);
+      });
+    }
+    
+    // Completed tasks
+    if (completedTasks.length === 0) {
+      noCompletedTasks.style.display = 'block';
+    } else {
+      noCompletedTasks.style.display = 'none';
+      completedTasks.forEach(task => {
+        const taskElement = createTaskElement(task, true);
+        completedTasksList.appendChild(taskElement);
+      });
+    }
+  }
+  
+  function createTaskElement(task, isCompleted) {
+    const taskItem = document.createElement('div');
+    taskItem.className = isCompleted ? 'task-item task-completed' : 'task-item';
+    taskItem.setAttribute('data-id', task.id);
+    
+    const taskContent = document.createElement('div');
+    taskContent.className = 'task-content';
+    
+    const taskTitle = document.createElement('span');
+    taskTitle.className = 'task-title';
+    taskTitle.textContent = task.title;
+    
+    taskContent.appendChild(taskTitle);
+    
+    const taskActions = document.createElement('div');
+    taskActions.className = 'task-actions';
+    
+    if (!isCompleted) {
+      // For current tasks, add done and failed buttons
+      const doneBtn = document.createElement('button');
+      doneBtn.className = 'task-action-btn task-done-btn';
+      doneBtn.innerHTML = '✓';
+      doneBtn.title = 'Mark as Done';
+      doneBtn.addEventListener('click', () => {
+        completeTask(task.id, 'done');
+      });
+      
+      const failedBtn = document.createElement('button');
+      failedBtn.className = 'task-action-btn task-failed-btn';
+      failedBtn.innerHTML = '✗';
+      failedBtn.title = 'Mark as Failed';
+      failedBtn.addEventListener('click', () => {
+        completeTask(task.id, 'failed');
+      });
+      
+      taskActions.appendChild(doneBtn);
+      taskActions.appendChild(failedBtn);
+    }
+    
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'task-action-btn task-delete-btn';
+    deleteBtn.innerHTML = '🗑️';
+    deleteBtn.title = 'Delete';
+    deleteBtn.addEventListener('click', () => {
+      deleteTask(task.id, isCompleted);
+    });
+    
+    taskActions.appendChild(deleteBtn);
+    
+    taskItem.appendChild(taskContent);
+    taskItem.appendChild(taskActions);
+    
+    return taskItem;
+  }
+  
+  function saveTask() {
+    const title = taskTitleInput.value.trim();
+    
+    if (!title) {
+      alert('Please enter a task title');
+      return;
+    }
+    
+    chrome.storage.sync.get(['tasks'], function(result) {
+      const tasks = result.tasks || [];
+      
+      const newTask = {
+        id: Date.now().toString(),
+        title: title,
+        date: new Date().toISOString()
+      };
+      
+      tasks.unshift(newTask); // Add to the beginning of the array
+      
+      chrome.storage.sync.set({ tasks: tasks }, function() {
+        // Clear input and reload tasks
+        taskTitleInput.value = '';
+        taskTitleInput.focus();
+        loadTasks();
+      });
+    });
+  }
+  
+  function completeTask(id, status) {
+    chrome.storage.sync.get(['tasks', 'completedTasks'], function(result) {
+      let tasks = result.tasks || [];
+      let completedTasks = result.completedTasks || [];
+      
+      // Find the task to complete
+      const index = tasks.findIndex(task => task.id === id);
+      if (index !== -1) {
+        const task = tasks[index];
+        
+        // Add status and completion time
+        task.status = status;
+        task.completedAt = new Date().toISOString();
+        
+        // Move task from active to completed
+        completedTasks.unshift(task);
+        tasks.splice(index, 1);
+        
+        // Update storage
+        chrome.storage.sync.set({ 
+          tasks: tasks,
+          completedTasks: completedTasks 
+        }, function() {
+          loadTasks();
+        });
+      }
+    });
+  }
+  
+  function deleteTask(id, isCompleted) {
+    const storageKey = isCompleted ? 'completedTasks' : 'tasks';
+    
+    chrome.storage.sync.get([storageKey], function(result) {
+      let items = result[storageKey] || [];
+      
+      // Remove the task
+      items = items.filter(item => item.id !== id);
+      
+      // Update storage
+      const update = {};
+      update[storageKey] = items;
+      
+      chrome.storage.sync.set(update, function() {
+        loadTasks();
+      });
+    });
+  }
+  
   function toggleAddForm() {
     // Hide tag form if visible
     addTagForm.classList.add('hidden');
     editForm.classList.add('hidden');
+    taskManager.classList.add('hidden');
     
     // Toggle add note form
     addForm.classList.toggle('hidden');
@@ -106,6 +332,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Hide other forms if visible
     addForm.classList.add('hidden');
     editForm.classList.add('hidden');
+    taskManager.classList.add('hidden');
     
     // Toggle add tag form
     addTagForm.classList.toggle('hidden');
@@ -234,9 +461,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Create header container to properly align date and actions
     const noteHeader = document.createElement('div');
     noteHeader.className = 'note-header';
-    noteHeader.style.position = 'relative';
-    noteHeader.style.width = '100%';
-    noteHeader.style.marginBottom = '8px';
     
     const noteDate = document.createElement('div');
     noteDate.className = 'note-date';
@@ -415,6 +639,7 @@ Tag: ${tag ? tag.name : 'None'}`;
     
     addForm.classList.add('hidden');
     addTagForm.classList.add('hidden');
+    taskManager.classList.add('hidden');
     editForm.classList.remove('hidden');
     
     editTitleInput.focus();
