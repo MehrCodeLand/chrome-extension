@@ -36,6 +36,9 @@ document.addEventListener('DOMContentLoaded', function() {
   const completedTasksList = document.getElementById('completed-tasks-list');
   const noTasks = document.getElementById('no-tasks');
   const noCompletedTasks = document.getElementById('no-completed-tasks');
+  
+  // DOM Elements - Theme
+  const toggleThemeBtn = document.getElementById('toggle-theme-btn');
 
   // Initialize storage and load data
   initializeStorage(function() {
@@ -43,6 +46,7 @@ document.addEventListener('DOMContentLoaded', function() {
       loadNotes();
       loadTasks();
     });
+    loadTheme();
   });
 
   // Event Listeners - Notes
@@ -72,10 +76,13 @@ document.addEventListener('DOMContentLoaded', function() {
       saveTask();
     }
   });
+  
+  // Event Listeners - Theme
+  toggleThemeBtn.addEventListener('click', toggleTheme);
 
   // Functions
   function initializeStorage(callback) {
-    chrome.storage.sync.get(['notes', 'tags', 'tasks', 'completedTasks'], function(result) {
+    chrome.storage.sync.get(['notes', 'tags', 'tasks', 'completedTasks', 'theme'], function(result) {
       let updates = {};
       let needsUpdate = false;
       
@@ -108,6 +115,13 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Initializing completed tasks array');
       }
       
+      // Initialize theme if it doesn't exist
+      if (!result.theme) {
+        updates.theme = 'light';
+        needsUpdate = true;
+        console.log('Initializing theme');
+      }
+      
       if (needsUpdate) {
         chrome.storage.sync.set(updates, function() {
           console.log('Storage initialized');
@@ -118,6 +132,39 @@ document.addEventListener('DOMContentLoaded', function() {
         if (callback) callback();
       }
     });
+  }
+  
+  // Load and apply saved theme
+  function loadTheme() {
+    chrome.storage.sync.get(['theme'], function(result) {
+      const theme = result.theme || 'light';
+      applyTheme(theme);
+    });
+  }
+  
+  // Toggle between light and dark theme
+  function toggleTheme() {
+    chrome.storage.sync.get(['theme'], function(result) {
+      const currentTheme = result.theme || 'light';
+      const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+      
+      chrome.storage.sync.set({ theme: newTheme }, function() {
+        applyTheme(newTheme);
+      });
+    });
+  }
+  
+  // Apply theme to document and update toggle button
+  function applyTheme(theme) {
+    if (theme === 'dark') {
+      document.body.classList.add('dark-mode');
+      toggleThemeBtn.innerHTML = '☀️';
+      toggleThemeBtn.title = 'Switch to Light Mode';
+    } else {
+      document.body.classList.remove('dark-mode');
+      toggleThemeBtn.innerHTML = '🌙';
+      toggleThemeBtn.title = 'Switch to Dark Mode';
+    }
   }
 
   function toggleTaskManager() {

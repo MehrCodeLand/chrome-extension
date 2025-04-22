@@ -15,20 +15,40 @@
   --border-color: #e0e0e0;
   --bg-color: #f9f9f9;
   --shadow-color: rgba(0, 0, 0, 0.1);
+  --form-bg: white;
+  --item-bg: white;
+}
+
+/* Dark Mode Variables */
+.dark-mode {
+  --yellow-note: #706900;
+  --blue-note: #004c8c;
+  --green-note: #1b5e20;
+  --pink-note: #880e4f;
+  --text-color: #e0e0e0;
+  --light-text: #a0a0a0;
+  --border-color: #444444;
+  --bg-color: #212121;
+  --shadow-color: rgba(0, 0, 0, 0.3);
+  --form-bg: #2d2d2d;
+  --item-bg: #2d2d2d;
 }
 
 body {
   background-color: var(--bg-color);
   color: var(--text-color);
   width: 350px;
-  min-height: 450px;
+  height: 500px;
   overflow-x: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .container {
   width: 100%;
-  min-height: 450px;
+  height: 500px;
   padding: 16px;
+  display: flex;
+  flex-direction: column;
 }
 
 .header {
@@ -101,17 +121,32 @@ body {
   box-shadow: 2px 2px 5px var(--shadow-color);
 }
 
-.add-btn:hover, .tag-btn:hover, .task-btn:hover {
+.theme-btn {
+  background-color: var(--pink-note);
+  color: var(--text-color);
+  font-size: 16px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  box-shadow: 2px 2px 5px var(--shadow-color);
+}
+
+.add-btn:hover, .tag-btn:hover, .task-btn:hover, .theme-btn:hover {
   transform: translateY(-2px);
   box-shadow: 2px 4px 8px var(--shadow-color);
 }
 
 .form-container {
-  background-color: white;
+  background-color: var(--form-bg);
   padding: 12px;
   border-radius: 8px;
   box-shadow: 0 2px 8px var(--shadow-color);
   margin-bottom: 16px;
+  height: 400px;
+  overflow-y: auto;
 }
 
 .input {
@@ -122,6 +157,8 @@ body {
   border-radius: 4px;
   font-size: 14px;
   font-family: 'Kalam', cursive;
+  background-color: var(--bg-color);
+  color: var(--text-color);
 }
 
 .note-textarea {
@@ -146,7 +183,7 @@ body {
 }
 
 .save-btn:hover {
-  background-color: #9ad89a;
+  opacity: 0.9;
 }
 
 .cancel-btn {
@@ -155,7 +192,7 @@ body {
 }
 
 .cancel-btn:hover {
-  background-color: #555;
+  opacity: 0.9;
 }
 
 .search-container {
@@ -163,14 +200,14 @@ body {
 }
 
 .search-input {
-  background-color: white;
+  background-color: var(--form-bg);
 }
 
 .tag-filter-container {
   display: flex;
   align-items: center;
   margin-bottom: 16px;
-  background-color: white;
+  background-color: var(--form-bg);
   padding: 8px 12px;
   border-radius: 6px;
   box-shadow: 0 1px 3px var(--shadow-color);
@@ -199,7 +236,8 @@ body {
   padding: 8px;
   border: 1px solid var(--border-color);
   border-radius: 4px;
-  background-color: white;
+  background-color: var(--bg-color);
+  color: var(--text-color);
 }
 
 .tag-badge {
@@ -212,8 +250,9 @@ body {
 }
 
 .notes-container {
-  max-height: 300px;
+  flex: 1;
   overflow-y: auto;
+  height: 300px;
 }
 
 .note-item {
@@ -350,20 +389,19 @@ body {
   line-height: 20px;
   text-decoration: none;
   border-radius: 6px;
-  background-color: #f6f8fa;
-  border: 1px solid rgba(27, 31, 36, 0.15);
-  color: #24292f;
+  background-color: var(--form-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
   transition: background-color 0.2s ease;
 }
 
 .github-link:hover {
-  background-color: #e9ebef;
-  text-decoration: none;
+  opacity: 0.9;
 }
 
 .github-icon {
   margin-right: 8px;
-  fill: #24292f;
+  fill: var(--text-color);
 }
 
 /* Task Manager Styles */
@@ -420,7 +458,7 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 10px 12px;
-  background-color: white;
+  background-color: var(--item-bg);
   border-radius: 6px;
   box-shadow: 0 1px 3px var(--shadow-color);
 }
@@ -460,12 +498,17 @@ body {
 
 .task-done-btn {
   background-color: var(--green-note);
-  color: #006400;
+  color: var(--text-color);
 }
 
 .task-failed-btn {
   background-color: #ffadad;
   color: #8b0000;
+}
+
+.dark-mode .task-failed-btn {
+  background-color: #8b0000;
+  color: #ffadad;
 }
 
 .task-delete-btn {
@@ -474,11 +517,11 @@ body {
 }
 
 .task-done-btn:hover {
-  background-color: #a1e5a1;
+  opacity: 0.9;
 }
 
 .task-failed-btn:hover {
-  background-color: #ff9999;
+  opacity: 0.9;
 }
 
 .task-delete-btn:hover {

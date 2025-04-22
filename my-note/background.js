@@ -3,7 +3,7 @@ chrome.runtime.onInstalled.addListener(function() {
   console.log('NoteDotMe extension installed');
 
   // Initialize storage if needed
-  chrome.storage.sync.get(['notes', 'tags', 'tasks', 'completedTasks'], function(result) {
+  chrome.storage.sync.get(['notes', 'tags', 'tasks', 'completedTasks', 'theme'], function(result) {
     // Initialize notes array if it doesn't exist
     if (!result.notes) {
       chrome.storage.sync.set({ notes: [] }, function() {
@@ -31,6 +31,13 @@ chrome.runtime.onInstalled.addListener(function() {
     if (!result.completedTasks) {
       chrome.storage.sync.set({ completedTasks: [] }, function() {
         console.log('Storage initialized for completed tasks');
+      });
+    }
+    
+    // Initialize theme if it doesn't exist
+    if (!result.theme) {
+      chrome.storage.sync.set({ theme: 'light' }, function() {
+        console.log('Storage initialized for theme');
       });
     }
   });
