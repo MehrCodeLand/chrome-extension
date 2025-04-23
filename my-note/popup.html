@@ -13,14 +13,33 @@
       <h1>NoteDotMe</h1>
       <div class="header-actions">
         <button id="toggle-theme-btn" class="btn theme-btn" title="Toggle Dark/Light Mode">🌙</button>
+        <button id="timer-btn" class="btn timer-btn" title="Timer">⏱️</button>
         <button id="add-tag-btn" class="btn tag-btn" title="Add New Tag">#</button>
         <button id="add-task-btn" class="btn task-btn" title="Tasks Manager">✓</button>
         <button id="add-btn" class="btn add-btn" title="Create New Note">+</button>
       </div>
     </div>
     
+    <!-- Timer Section -->
+    <div id="timer-container" class="content-container hidden">
+      <h3 class="section-title">Timer</h3>
+      
+      <div class="timer-display">
+        <div class="timer-digits">
+          <span id="hours">00</span>:<span id="minutes">00</span>:<span id="seconds">00</span>
+        </div>
+      </div>
+      
+      <div class="timer-controls">
+        <button id="start-timer-btn" class="btn timer-action-btn">Start</button>
+        <button id="stop-timer-btn" class="btn timer-action-btn" disabled>Stop</button>
+        <button id="reset-timer-btn" class="btn timer-action-btn">Reset</button>
+      </div>
+    </div>
+    
     <!-- Add Tag Form -->
-    <div id="add-tag-form" class="form-container hidden">
+    <div id="add-tag-form" class="content-container hidden">
+      <h3 class="section-title">Add New Tag</h3>
       <input type="text" id="tag-name" placeholder="Tag Name" class="input">
       <div class="form-buttons">
         <button id="save-tag-btn" class="btn save-btn">Save</button>
@@ -29,7 +48,7 @@
     </div>
     
     <!-- Task Manager Section -->
-    <div id="task-manager" class="form-container hidden">
+    <div id="task-manager" class="content-container hidden">
       <h3 class="section-title">Task Manager</h3>
       
       <!-- Add Task Form -->
@@ -48,14 +67,11 @@
         <div id="completed-tasks-list" class="tasks-list completed-tasks"></div>
         <div id="no-completed-tasks" class="no-items">No completed tasks</div>
       </div>
-      
-      <div class="form-buttons">
-        <button id="close-tasks-btn" class="btn cancel-btn">Close</button>
-      </div>
     </div>
     
     <!-- Add Note Form -->
-    <div id="add-form" class="form-container hidden">
+    <div id="add-form" class="content-container hidden">
+      <h3 class="section-title">Add Note</h3>
       <input type="text" id="note-title" placeholder="Title" class="input">
       <textarea id="note-content" placeholder="Write your note here..." class="input note-textarea"></textarea>
       <div class="tag-selection">
@@ -71,7 +87,8 @@
     </div>
     
     <!-- Edit Note Form -->
-    <div id="edit-form" class="form-container hidden">
+    <div id="edit-form" class="content-container hidden">
+      <h3 class="section-title">Edit Note</h3>
       <input type="text" id="edit-title" placeholder="Title" class="input">
       <textarea id="edit-content" placeholder="Write your note here..." class="input note-textarea"></textarea>
       <div class="tag-selection">
@@ -87,22 +104,20 @@
       </div>
     </div>
     
-    <div class="search-container">
-      <input type="text" id="search" placeholder="Search notes..." class="input search-input">
-    </div>
-    
-    <div class="tag-filter-container">
-      <label for="tag-filter">Filter by tag:</label>
-      <select id="tag-filter" class="input tag-select">
-        <option value="all">All Tags</option>
-        <option value="general">General</option>
-      </select>
-    </div>
-    
-    <div class="notes-container">
-      <div id="notes-list"></div>
-      <div id="no-notes" class="no-notes">
-        <p>No notes yet. Click the + button to create one!</p>
+    <!-- Notes List (Main View) -->
+    <div id="notes-container" class="content-container">
+      <h3 class="section-title">My Notes</h3>
+      
+      <div class="tag-filter-bar">
+        <select id="tag-filter" class="input tag-select-compact">
+          <option value="all">All Tags</option>
+          <option value="general">General</option>
+        </select>
+      </div>
+      
+      <div class="notes-list-container">
+        <div id="notes-list"></div>
+        <div id="no-notes" class="no-items">No notes yet. Click the + button to create one!</div>
       </div>
     </div>
 

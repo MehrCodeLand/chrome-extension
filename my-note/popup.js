@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const addForm = document.getElementById('add-form');
   const addTagForm = document.getElementById('add-tag-form');
   const editForm = document.getElementById('edit-form');
+  const notesContainer = document.getElementById('notes-container');
   const notesList = document.getElementById('notes-list');
   const noNotes = document.getElementById('no-notes');
   const saveNoteBtn = document.getElementById('save-note-btn');
@@ -23,7 +24,6 @@ document.addEventListener('DOMContentLoaded', function() {
   const editContentInput = document.getElementById('edit-content');
   const editTagSelect = document.getElementById('edit-tag');
   const editIdInput = document.getElementById('edit-id');
-  const searchInput = document.getElementById('search');
   const tagFilter = document.getElementById('tag-filter');
   
   // DOM Elements - Tasks
@@ -31,14 +31,30 @@ document.addEventListener('DOMContentLoaded', function() {
   const taskManager = document.getElementById('task-manager');
   const taskTitleInput = document.getElementById('task-title');
   const saveTaskBtn = document.getElementById('save-task-btn');
-  const closeTasksBtn = document.getElementById('close-tasks-btn');
   const tasksList = document.getElementById('tasks-list');
   const completedTasksList = document.getElementById('completed-tasks-list');
   const noTasks = document.getElementById('no-tasks');
   const noCompletedTasks = document.getElementById('no-completed-tasks');
   
+  // DOM Elements - Timer
+  const timerBtn = document.getElementById('timer-btn');
+  const timerContainer = document.getElementById('timer-container');
+  const startTimerBtn = document.getElementById('start-timer-btn');
+  const stopTimerBtn = document.getElementById('stop-timer-btn');
+  const resetTimerBtn = document.getElementById('reset-timer-btn');
+  const hoursDisplay = document.getElementById('hours');
+  const minutesDisplay = document.getElementById('minutes');
+  const secondsDisplay = document.getElementById('seconds');
+  
   // DOM Elements - Theme
   const toggleThemeBtn = document.getElementById('toggle-theme-btn');
+
+  // Timer variables
+  let timerInterval;
+  let timerRunning = false;
+  let timerSeconds = 0;
+  let timerMinutes = 0;
+  let timerHours = 0;
 
   // Initialize storage and load data
   initializeStorage(function() {
@@ -59,30 +75,35 @@ document.addEventListener('DOMContentLoaded', function() {
   updateNoteBtn.addEventListener('click', updateNote);
   cancelEditBtn.addEventListener('click', () => {
     editForm.classList.add('hidden');
-  });
-  searchInput.addEventListener('input', function() {
-    filterNotes();
-  });
-  tagFilter.addEventListener('change', function() {
-    filterNotes();
+    notesContainer.classList.remove('hidden');
   });
   
   // Event Listeners - Tasks
   addTaskBtn.addEventListener('click', toggleTaskManager);
   saveTaskBtn.addEventListener('click', saveTask);
-  closeTasksBtn.addEventListener('click', toggleTaskManager);
   taskTitleInput.addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
       saveTask();
     }
   });
   
+  // Event Listeners - Timer
+  timerBtn.addEventListener('click', toggleTimer);
+  startTimerBtn.addEventListener('click', startTimer);
+  stopTimerBtn.addEventListener('click', stopTimer);
+  resetTimerBtn.addEventListener('click', resetTimer);
+  
   // Event Listeners - Theme
   toggleThemeBtn.addEventListener('click', toggleTheme);
+  
+  // Event Listener - Tag Filter
+  tagFilter.addEventListener('change', function() {
+    filterNotes();
+  });
 
   // Functions
   function initializeStorage(callback) {
-    chrome.storage.sync.get(['notes', 'tags', 'tasks', 'completedTasks', 'theme'], function(result) {
+    chrome.storage.sync.get(['notes', 'tags', 'tasks', 'completedTasks', 'theme', 'timerState'], function(result) {
       let updates = {};
       let needsUpdate = false;
       
@@ -120,6 +141,18 @@ document.addEventListener('DOMContentLoaded', function() {
         updates.theme = 'light';
         needsUpdate = true;
         console.log('Initializing theme');
+      }
+      
+      // Initialize timer state if it doesn't exist
+      if (!result.timerState) {
+        updates.timerState = {
+          seconds: 0,
+          minutes: 0,
+          hours: 0,
+          running: false
+        };
+        needsUpdate = true;
+        console.log('Initializing timer state');
       }
       
       if (needsUpdate) {
@@ -167,22 +200,74 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
-  function toggleTaskManager() {
-    // Hide other forms
-    addForm.classList.add('hidden');
-    addTagForm.classList.add('hidden');
-    editForm.classList.add('hidden');
-    
-    // Toggle task manager
-    taskManager.classList.toggle('hidden');
-    
-    if (!taskManager.classList.contains('hidden')) {
-      taskTitleInput.focus();
-      loadTasks();
+  // Timer Functions
+  function toggleTimer() {
+    hideAllContainers();
+    timerContainer.classList.remove('hidden');
+    updateTimerDisplay();
+  }
+  
+  function startTimer() {
+    if (!timerRunning) {
+      timerRunning = true;
+      startTimerBtn.textContent = 'Pause';
+      stopTimerBtn.disabled = false;
+      
+      timerInterval = setInterval(function() {
+        timerSeconds++;
+        
+        if (timerSeconds >= 60) {
+          timerSeconds = 0;
+          timerMinutes++;
+          
+          if (timerMinutes >= 60) {
+            timerMinutes = 0;
+            timerHours++;
+          }
+        }
+        
+        updateTimerDisplay();
+      }, 1000);
     } else {
-      // Clear task input
-      taskTitleInput.value = '';
+      // Pause the timer
+      timerRunning = false;
+      startTimerBtn.textContent = 'Start';
+      clearInterval(timerInterval);
     }
+  }
+  
+  function stopTimer() {
+    if (timerRunning) {
+      timerRunning = false;
+      startTimerBtn.textContent = 'Start';
+      clearInterval(timerInterval);
+    }
+    stopTimerBtn.disabled = true;
+  }
+  
+  function resetTimer() {
+    stopTimer();
+    timerSeconds = 0;
+    timerMinutes = 0;
+    timerHours = 0;
+    updateTimerDisplay();
+  }
+  
+  function updateTimerDisplay() {
+    secondsDisplay.textContent = padZero(timerSeconds);
+    minutesDisplay.textContent = padZero(timerMinutes);
+    hoursDisplay.textContent = padZero(timerHours);
+  }
+  
+  function padZero(num) {
+    return num.toString().padStart(2, '0');
+  }
+
+  function toggleTaskManager() {
+    hideAllContainers();
+    taskManager.classList.remove('hidden');
+    taskTitleInput.focus();
+    loadTasks();
   }
   
   function loadTasks() {
@@ -358,37 +443,30 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   function toggleAddForm() {
-    // Hide tag form if visible
-    addTagForm.classList.add('hidden');
-    editForm.classList.add('hidden');
-    taskManager.classList.add('hidden');
-    
-    // Toggle add note form
-    addForm.classList.toggle('hidden');
-    if (!addForm.classList.contains('hidden')) {
-      noteTitleInput.focus();
-    } else {
-      // Clear form
-      noteTitleInput.value = '';
-      noteContentInput.value = '';
-      noteTagSelect.value = 'general';
-    }
+    hideAllContainers();
+    addForm.classList.remove('hidden');
+    noteTitleInput.focus();
   }
 
   function toggleAddTagForm() {
-    // Hide other forms if visible
+    hideAllContainers();
+    addTagForm.classList.remove('hidden');
+    tagNameInput.focus();
+  }
+  
+  function hideAllContainers() {
+    // Hide all containers
+    notesContainer.classList.add('hidden');
     addForm.classList.add('hidden');
+    addTagForm.classList.add('hidden');
     editForm.classList.add('hidden');
     taskManager.classList.add('hidden');
-    
-    // Toggle add tag form
-    addTagForm.classList.toggle('hidden');
-    if (!addTagForm.classList.contains('hidden')) {
-      tagNameInput.focus();
-    } else {
-      // Clear form
-      tagNameInput.value = '';
-    }
+    timerContainer.classList.add('hidden');
+  }
+  
+  function showNotesContainer() {
+    hideAllContainers();
+    notesContainer.classList.remove('hidden');
   }
 
   function loadTags(callback) {
@@ -446,7 +524,6 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function filterNotes() {
-    const searchTerm = searchInput.value.trim().toLowerCase();
     const selectedTagId = tagFilter.value;
     
     chrome.storage.sync.get(['notes', 'tags'], function(result) {
@@ -455,15 +532,12 @@ document.addEventListener('DOMContentLoaded', function() {
       
       console.log('Filtering notes. Total:', notes.length);
       
-      // Filter notes based on search term and selected tag
-      let filteredNotes = notes.filter(note => {
-        const matchesSearch = searchTerm === '' || 
-                             note.title.toLowerCase().includes(searchTerm) || 
-                             note.content.toLowerCase().includes(searchTerm);
-        const matchesTag = selectedTagId === 'all' || note.tagId === selectedTagId;
-        
-        return matchesSearch && matchesTag;
-      });
+      // Filter notes based on selected tag
+      let filteredNotes = notes;
+      
+      if (selectedTagId !== 'all') {
+        filteredNotes = notes.filter(note => note.tagId === selectedTagId);
+      }
       
       // Update UI
       updateNotesUI(filteredNotes, tags);
@@ -628,8 +702,8 @@ Tag: ${tag ? tag.name : 'None'}`;
         notes.unshift(newNote);
         
         chrome.storage.sync.set({ notes: notes }, function() {
-          toggleAddForm();
-          filterNotes();
+          showNotesContainer();
+          loadNotes();
         });
       });
     });
@@ -670,9 +744,9 @@ Tag: ${tag ? tag.name : 'None'}`;
       tags.push(newTag);
       
       chrome.storage.sync.set({ tags: tags }, function() {
-        toggleAddTagForm();
+        showNotesContainer();
         loadTags(function() {
-          filterNotes();
+          loadNotes();
         });
       });
     });
@@ -684,11 +758,8 @@ Tag: ${tag ? tag.name : 'None'}`;
     editTagSelect.value = note.tagId || 'general';
     editIdInput.value = note.id;
     
-    addForm.classList.add('hidden');
-    addTagForm.classList.add('hidden');
-    taskManager.classList.add('hidden');
+    hideAllContainers();
     editForm.classList.remove('hidden');
-    
     editTitleInput.focus();
   }
 
@@ -723,8 +794,8 @@ Tag: ${tag ? tag.name : 'None'}`;
         };
         
         chrome.storage.sync.set({ notes: notes }, function() {
-          editForm.classList.add('hidden');
-          filterNotes();
+          showNotesContainer();
+          loadNotes();
         });
       }
     });
@@ -737,7 +808,7 @@ Tag: ${tag ? tag.name : 'None'}`;
         notes = notes.filter(note => note.id !== id);
         
         chrome.storage.sync.set({ notes: notes }, function() {
-          filterNotes();
+          loadNotes();
         });
       });
     }
