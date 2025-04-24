@@ -46,8 +46,9 @@ document.addEventListener('DOMContentLoaded', function() {
   const minutesDisplay = document.getElementById('minutes');
   const secondsDisplay = document.getElementById('seconds');
   
-  // DOM Elements - Theme
+  // DOM Elements - Theme and Home
   const toggleThemeBtn = document.getElementById('toggle-theme-btn');
+  const homeBtn = document.getElementById('home-btn');
 
   // Timer variables
   let timerInterval;
@@ -93,8 +94,9 @@ document.addEventListener('DOMContentLoaded', function() {
   stopTimerBtn.addEventListener('click', stopTimer);
   resetTimerBtn.addEventListener('click', resetTimer);
   
-  // Event Listeners - Theme
+  // Event Listeners - Theme and Home
   toggleThemeBtn.addEventListener('click', toggleTheme);
+  homeBtn.addEventListener('click', showNotesContainer);
   
   // Event Listener - Tag Filter
   tagFilter.addEventListener('change', function() {
@@ -467,6 +469,7 @@ document.addEventListener('DOMContentLoaded', function() {
   function showNotesContainer() {
     hideAllContainers();
     notesContainer.classList.remove('hidden');
+    loadNotes();
   }
 
   function loadTags(callback) {

@@ -140,7 +140,7 @@ body {
   box-shadow: 2px 2px 5px var(--shadow-color);
 }
 
-.theme-btn {
+.home-btn {
   background-color: var(--pink-note);
   color: var(--text-color);
   font-size: 16px;
@@ -153,7 +153,31 @@ body {
   box-shadow: 2px 2px 5px var(--shadow-color);
 }
 
-.add-btn:hover, .tag-btn:hover, .task-btn:hover, .theme-btn:hover, .timer-btn:hover {
+/* Updated theme button to match GitHub button style */
+.theme-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 16px;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 20px;
+  border-radius: 6px;
+  background-color: var(--form-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+  transition: all 0.2s ease;
+  width: auto;
+  height: auto;
+  box-shadow: none;
+}
+
+.theme-btn:hover {
+  background-color: var(--border-color);
+  transform: none;
+}
+
+.add-btn:hover, .tag-btn:hover, .task-btn:hover, .timer-btn:hover, .home-btn:hover {
   transform: translateY(-2px);
   box-shadow: 2px 4px 8px var(--shadow-color);
 }
@@ -386,14 +410,15 @@ body {
   background: #a0a0a0;
 }
 
-/* GitHub link styling */
-.github-container {
-  width: 100%;
-  margin-top: 12px;
-  padding-top: 6px;
-  border-top: 1px solid var(--border-color);
+/* Bottom bar styling */
+.bottom-bar {
   display: flex;
   justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-color);
 }
 
 .github-link {
@@ -412,7 +437,7 @@ body {
 }
 
 .github-link:hover {
-  opacity: 0.9;
+  background-color: var(--border-color);
 }
 
 .github-icon {
