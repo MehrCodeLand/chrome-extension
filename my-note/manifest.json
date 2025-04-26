@@ -3,7 +3,7 @@
   "name": "NoteDotMe",
   "version": "1.0",
   "description": "Take quick notes while browsing with date, title, content, and tags",
-  "permissions": ["storage", "activeTab"],
+  "permissions": ["storage", "activeTab", "alarms"],
   "host_permissions": ["<all_urls>"],
   "action": {
     "default_popup": "popup.html",
@@ -15,8 +15,7 @@
     }
   },
   "background": {
-    "service_worker": "background.js",
-    "type": "module"
+    "service_worker": "background.js"
   },
   "content_scripts": [
     {

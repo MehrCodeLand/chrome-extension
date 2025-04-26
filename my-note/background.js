@@ -1,3 +1,10 @@
+// Timer variables
+let timerInterval;
+let timerRunning = false;
+let timerSeconds = 0;
+let timerMinutes = 0;
+let timerHours = 0;
+
 // Initialize extension
 chrome.runtime.onInstalled.addListener(function() {
   console.log('NoteDotMe extension installed');
@@ -41,7 +48,7 @@ chrome.runtime.onInstalled.addListener(function() {
       });
     }
     
-    // Initialize timer state if it doesn't exist
+    // Initialize or restore timer state
     if (!result.timerState) {
       chrome.storage.sync.set({ 
         timerState: {
@@ -53,17 +60,160 @@ chrome.runtime.onInstalled.addListener(function() {
       }, function() {
         console.log('Storage initialized for timer state');
       });
+    } else {
+      // Restore timer state
+      timerSeconds = result.timerState.seconds || 0;
+      timerMinutes = result.timerState.minutes || 0;
+      timerHours = result.timerState.hours || 0;
+      timerRunning = result.timerState.running || false;
+      
+      // If timer was running, restart it
+      if (timerRunning) {
+        startTimerInterval();
+      }
     }
   });
 });
 
-// Listen for messages from content script
+// Listen for messages from popup or content scripts
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   if (request.action === 'quickNote') {
     // Handle quick note creation if we implement that feature
     sendResponse({status: 'received'});
+  } else if (request.action === 'timerCommand') {
+    handleTimerCommand(request.command);
+    sendResponse({status: 'success'});
+  } else if (request.action === 'getTimerState') {
+    sendResponse({
+      seconds: timerSeconds,
+      minutes: timerMinutes,
+      hours: timerHours,
+      running: timerRunning
+    });
   }
+  return true; // Keep the message channel open for async response
 });
+
+// Timer functions
+function handleTimerCommand(command) {
+  switch (command) {
+    case 'start':
+      startTimer();
+      break;
+    case 'stop':
+      stopTimer();
+      break;
+    case 'reset':
+      resetTimer();
+      break;
+  }
+}
+
+function startTimer() {
+  if (!timerRunning) {
+    timerRunning = true;
+    startTimerInterval();
+    updateTimerState();
+    
+    // Notify popup if it's open
+    chrome.runtime.sendMessage({
+      action: 'timerStateChanged',
+      state: {
+        seconds: timerSeconds,
+        minutes: timerMinutes,
+        hours: timerHours,
+        running: timerRunning
+      }
+    }).catch(() => {}); // Ignore errors if popup is closed
+  }
+}
+
+function stopTimer() {
+  if (timerRunning) {
+    timerRunning = false;
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+    updateTimerState();
+    
+    // Notify popup if it's open
+    chrome.runtime.sendMessage({
+      action: 'timerStateChanged',
+      state: {
+        seconds: timerSeconds,
+        minutes: timerMinutes,
+        hours: timerHours,
+        running: timerRunning
+      }
+    }).catch(() => {}); // Ignore errors if popup is closed
+  }
+}
+
+function resetTimer() {
+  stopTimer();
+  timerSeconds = 0;
+  timerMinutes = 0;
+  timerHours = 0;
+  updateTimerState();
+  
+  // Notify popup if it's open
+  chrome.runtime.sendMessage({
+    action: 'timerStateChanged',
+    state: {
+      seconds: timerSeconds,
+      minutes: timerMinutes,
+      hours: timerHours,
+      running: timerRunning
+    }
+  }).catch(() => {}); // Ignore errors if popup is closed
+}
+
+function startTimerInterval() {
+  if (timerInterval) {
+    clearInterval(timerInterval);
+  }
+  
+  timerInterval = setInterval(function() {
+    timerSeconds++;
+    
+    if (timerSeconds >= 60) {
+      timerSeconds = 0;
+      timerMinutes++;
+      
+      if (timerMinutes >= 60) {
+        timerMinutes = 0;
+        timerHours++;
+      }
+    }
+    
+    // Update storage every second
+    updateTimerState();
+    
+    // Notify popup if it's open
+    chrome.runtime.sendMessage({
+      action: 'timerStateChanged',
+      state: {
+        seconds: timerSeconds,
+        minutes: timerMinutes,
+        hours: timerHours,
+        running: timerRunning
+      }
+    }).catch(() => {}); // Ignore errors if popup is closed
+    
+  }, 1000);
+}
+
+function updateTimerState() {
+  chrome.storage.sync.set({
+    timerState: {
+      seconds: timerSeconds,
+      minutes: timerMinutes,
+      hours: timerHours,
+      running: timerRunning
+    }
+  });
+}
 
 // Add GitHub information in the console log for attribution
 console.log('NoteDotMe Extension created by MehrCodeLand - https://github.com/MehrCodeLand');

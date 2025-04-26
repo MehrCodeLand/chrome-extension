@@ -50,12 +50,8 @@ document.addEventListener('DOMContentLoaded', function() {
   const toggleThemeBtn = document.getElementById('toggle-theme-btn');
   const homeBtn = document.getElementById('home-btn');
 
-  // Timer variables
-  let timerInterval;
+  // Timer variables (local for display only)
   let timerRunning = false;
-  let timerSeconds = 0;
-  let timerMinutes = 0;
-  let timerHours = 0;
 
   // Initialize storage and load data
   initializeStorage(function() {
@@ -64,6 +60,17 @@ document.addEventListener('DOMContentLoaded', function() {
       loadTasks();
     });
     loadTheme();
+    // Get initial timer state
+    getTimerState();
+  });
+
+  // Listen for timer state changes from background
+  chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+    if (request.action === 'timerStateChanged') {
+      updateTimerDisplay(request.state.hours, request.state.minutes, request.state.seconds);
+      timerRunning = request.state.running;
+      updateTimerButtonStates();
+    }
   });
 
   // Event Listeners - Notes
@@ -90,9 +97,15 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Event Listeners - Timer
   timerBtn.addEventListener('click', toggleTimer);
-  startTimerBtn.addEventListener('click', startTimer);
-  stopTimerBtn.addEventListener('click', stopTimer);
-  resetTimerBtn.addEventListener('click', resetTimer);
+  startTimerBtn.addEventListener('click', () => {
+    chrome.runtime.sendMessage({ action: 'timerCommand', command: timerRunning ? 'stop' : 'start' });
+  });
+  stopTimerBtn.addEventListener('click', () => {
+    chrome.runtime.sendMessage({ action: 'timerCommand', command: 'stop' });
+  });
+  resetTimerBtn.addEventListener('click', () => {
+    chrome.runtime.sendMessage({ action: 'timerCommand', command: 'reset' });
+  });
   
   // Event Listeners - Theme and Home
   toggleThemeBtn.addEventListener('click', toggleTheme);
@@ -145,17 +158,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Initializing theme');
       }
       
-      // Initialize timer state if it doesn't exist
-      if (!result.timerState) {
-        updates.timerState = {
-          seconds: 0,
-          minutes: 0,
-          hours: 0,
-          running: false
-        };
-        needsUpdate = true;
-        console.log('Initializing timer state');
-      }
+      // Don't need to initialize timer state here anymore as it's done in background
       
       if (needsUpdate) {
         chrome.storage.sync.set(updates, function() {
@@ -193,11 +196,11 @@ document.addEventListener('DOMContentLoaded', function() {
   function applyTheme(theme) {
     if (theme === 'dark') {
       document.body.classList.add('dark-mode');
-      toggleThemeBtn.innerHTML = '☀️';
+      toggleThemeBtn.innerHTML = '☀️ Theme';
       toggleThemeBtn.title = 'Switch to Light Mode';
     } else {
       document.body.classList.remove('dark-mode');
-      toggleThemeBtn.innerHTML = '🌙';
+      toggleThemeBtn.innerHTML = '🌙 Theme';
       toggleThemeBtn.title = 'Switch to Dark Mode';
     }
   }
@@ -206,59 +209,33 @@ document.addEventListener('DOMContentLoaded', function() {
   function toggleTimer() {
     hideAllContainers();
     timerContainer.classList.remove('hidden');
-    updateTimerDisplay();
+    getTimerState(); // Get current timer state when showing timer view
   }
   
-  function startTimer() {
-    if (!timerRunning) {
-      timerRunning = true;
+  function getTimerState() {
+    chrome.runtime.sendMessage({ action: 'getTimerState' }, function(response) {
+      if (response) {
+        updateTimerDisplay(response.hours, response.minutes, response.seconds);
+        timerRunning = response.running;
+        updateTimerButtonStates();
+      }
+    });
+  }
+  
+  function updateTimerDisplay(hours, minutes, seconds) {
+    hoursDisplay.textContent = padZero(hours);
+    minutesDisplay.textContent = padZero(minutes);
+    secondsDisplay.textContent = padZero(seconds);
+  }
+  
+  function updateTimerButtonStates() {
+    if (timerRunning) {
       startTimerBtn.textContent = 'Pause';
       stopTimerBtn.disabled = false;
-      
-      timerInterval = setInterval(function() {
-        timerSeconds++;
-        
-        if (timerSeconds >= 60) {
-          timerSeconds = 0;
-          timerMinutes++;
-          
-          if (timerMinutes >= 60) {
-            timerMinutes = 0;
-            timerHours++;
-          }
-        }
-        
-        updateTimerDisplay();
-      }, 1000);
     } else {
-      // Pause the timer
-      timerRunning = false;
       startTimerBtn.textContent = 'Start';
-      clearInterval(timerInterval);
+      stopTimerBtn.disabled = true;
     }
-  }
-  
-  function stopTimer() {
-    if (timerRunning) {
-      timerRunning = false;
-      startTimerBtn.textContent = 'Start';
-      clearInterval(timerInterval);
-    }
-    stopTimerBtn.disabled = true;
-  }
-  
-  function resetTimer() {
-    stopTimer();
-    timerSeconds = 0;
-    timerMinutes = 0;
-    timerHours = 0;
-    updateTimerDisplay();
-  }
-  
-  function updateTimerDisplay() {
-    secondsDisplay.textContent = padZero(timerSeconds);
-    minutesDisplay.textContent = padZero(timerMinutes);
-    hoursDisplay.textContent = padZero(timerHours);
   }
   
   function padZero(num) {
