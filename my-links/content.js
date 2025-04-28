@@ -1,6 +1,6 @@
 // This content script runs on web pages
 console.log('Link Saver content script loaded');
-
+// s
 // We're keeping this simple since direct clipboard access is restricted.
 // The main functionality for saving links will be through the context menu
 // which is handled by the background script.
