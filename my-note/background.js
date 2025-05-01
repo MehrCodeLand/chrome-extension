@@ -4,6 +4,7 @@ let timerRunning = false;
 let timerSeconds = 0;
 let timerMinutes = 0;
 let timerHours = 0;
+let lastStorageUpdate = 0; // Timestamp of last storage update
 
 // Initialize extension
 chrome.runtime.onInstalled.addListener(function() {
@@ -55,7 +56,8 @@ chrome.runtime.onInstalled.addListener(function() {
           seconds: 0,
           minutes: 0,
           hours: 0,
-          running: false
+          running: false,
+          lastUpdate: Date.now() // Add timestamp of last update
         }
       }, function() {
         console.log('Storage initialized for timer state');
@@ -66,6 +68,7 @@ chrome.runtime.onInstalled.addListener(function() {
       timerMinutes = result.timerState.minutes || 0;
       timerHours = result.timerState.hours || 0;
       timerRunning = result.timerState.running || false;
+      lastStorageUpdate = result.timerState.lastUpdate || Date.now();
       
       // If timer was running, restart it
       if (timerRunning) {
@@ -113,7 +116,9 @@ function startTimer() {
   if (!timerRunning) {
     timerRunning = true;
     startTimerInterval();
-    updateTimerState();
+    
+    // Always update storage on state change (start)
+    updateTimerState(true);
     
     // Notify popup if it's open
     chrome.runtime.sendMessage({
@@ -135,7 +140,9 @@ function stopTimer() {
       clearInterval(timerInterval);
       timerInterval = null;
     }
-    updateTimerState();
+    
+    // Always update storage on state change (stop)
+    updateTimerState(true);
     
     // Notify popup if it's open
     chrome.runtime.sendMessage({
@@ -155,7 +162,9 @@ function resetTimer() {
   timerSeconds = 0;
   timerMinutes = 0;
   timerHours = 0;
-  updateTimerState();
+  
+  // Always update storage on state change (reset)
+  updateTimerState(true);
   
   // Notify popup if it's open
   chrome.runtime.sendMessage({
@@ -187,10 +196,17 @@ function startTimerInterval() {
       }
     }
     
-    // Update storage every second
-    updateTimerState();
+    // Only update storage periodically, not every second
+    // Update every 30 seconds or when minutes/hours change
+    const shouldUpdateStorage = 
+      (Date.now() - lastStorageUpdate > 30000) || // 30 seconds passed
+      (timerSeconds === 0); // Minutes or hours just changed
     
-    // Notify popup if it's open
+    if (shouldUpdateStorage) {
+      updateTimerState();
+    }
+    
+    // Notify popup if it's open - always do this every second for UI updates
     chrome.runtime.sendMessage({
       action: 'timerStateChanged',
       state: {
@@ -204,15 +220,21 @@ function startTimerInterval() {
   }, 1000);
 }
 
-function updateTimerState() {
-  chrome.storage.sync.set({
-    timerState: {
-      seconds: timerSeconds,
-      minutes: timerMinutes,
-      hours: timerHours,
-      running: timerRunning
-    }
-  });
+function updateTimerState(forceUpdate = false) {
+  // Only update if we're forcing an update or enough time has passed
+  if (forceUpdate || (Date.now() - lastStorageUpdate > 30000)) {
+    lastStorageUpdate = Date.now();
+    
+    chrome.storage.sync.set({
+      timerState: {
+        seconds: timerSeconds,
+        minutes: timerMinutes,
+        hours: timerHours,
+        running: timerRunning,
+        lastUpdate: lastStorageUpdate
+      }
+    });
+  }
 }
 
 // Add GitHub information in the console log for attribution
