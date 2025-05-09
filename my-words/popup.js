@@ -576,7 +576,15 @@ document.addEventListener('DOMContentLoaded', function() {
       const isPracticed = practice.practices && practice.practices.length > i;
       if (isPracticed) {
         box.classList.add('completed');
-        box.title = `Practiced on ${formatDate(practice.practices[i])}`;
+        box.title = `Practiced on ${formatDate(practice.practices[i])}. Click to undo.`;
+        
+        // Allow undo for the last completed box
+        if (i === practice.practices.length - 1) {
+          box.addEventListener('click', function() {
+            undoPractice(word.id, i);
+          });
+          box.style.cursor = 'pointer';
+        }
       } else {
         // Only allow clicking the first uncompleted box
         if (i === practice.practices.length) {
@@ -625,6 +633,25 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         practices[index].practices.push(new Date().toISOString());
+        
+        chrome.storage.sync.set({ practices: practices }, function() {
+          // Reload practice UI
+          loadPracticeWords();
+        });
+      }
+    });
+  }
+  
+  function undoPractice(wordId, practiceIndex) {
+    chrome.storage.sync.get(['practices'], function(result) {
+      let practices = result.practices || [];
+      
+      // Find the practice record for this word
+      const index = practices.findIndex(p => p.wordId === wordId);
+      
+      if (index !== -1 && practices[index].practices && practices[index].practices.length > 0) {
+        // Remove the last practice entry
+        practices[index].practices.pop();
         
         chrome.storage.sync.set({ practices: practices }, function() {
           // Reload practice UI
