@@ -575,9 +575,16 @@ document.addEventListener('DOMContentLoaded', function() {
     wordTitle.className = 'practice-word-title';
     wordTitle.textContent = word.word;
     
+    // Limit the meaning to a reasonable length to keep consistent height
     const wordMeaning = document.createElement('div');
     wordMeaning.className = 'word-meaning';
-    wordMeaning.textContent = word.meaning;
+    
+    // Truncate meaning if it's too long
+    let meaningText = word.meaning;
+    if (meaningText.length > 100) {
+      meaningText = meaningText.substring(0, 100) + '...';
+    }
+    wordMeaning.textContent = meaningText;
     
     const practiceBoxes = document.createElement('div');
     practiceBoxes.className = 'practice-boxes';
