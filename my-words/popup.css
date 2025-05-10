@@ -127,12 +127,12 @@ body {
 
 .section-title {
   text-align: center;
-  margin-bottom: 25px;
-  font-size: 24px;
+  margin-bottom: 20px;
+  font-size: 22px;
   font-weight: 600;
   color: var(--font-color);
   position: relative;
-  padding-bottom: 10px;
+  padding-bottom: 8px;
 }
 
 .section-title:after {
@@ -148,7 +148,7 @@ body {
 }
 
 .form-group {
-  margin-bottom: 18px;
+  margin-bottom: 15px;
 }
 
 .form-group label {
@@ -177,7 +177,7 @@ body {
 }
 
 .textarea {
-  height: 120px;
+  height: 100px;
   resize: none;
   line-height: 1.5;
 }
@@ -216,7 +216,7 @@ body {
   background-color: var(--button-color);
   color: var(--font-color);
   border: none;
-  padding: 12px 20px;
+  padding: 10px 18px;
   font-size: 14px;
   border-radius: 8px;
   cursor: pointer;
@@ -235,7 +235,7 @@ body {
   background-color: rgba(255, 255, 255, 0.08);
   color: var(--font-color);
   border: 1px solid var(--border-color);
-  padding: 12px 20px;
+  padding: 10px 18px;
   font-size: 14px;
   border-radius: 8px;
   cursor: pointer;
@@ -351,7 +351,14 @@ body {
 #word-details-container .form-group {
   display: flex;
   justify-content: center;
-  gap: 10px;
+  gap: 8px;
+}
+
+#word-details-container .action-btn,
+#word-details-container .delete-btn,
+#word-details-container .cancel-btn {
+  padding: 8px 14px;
+  font-size: 13px;
 }
 
 .practice-word-item {

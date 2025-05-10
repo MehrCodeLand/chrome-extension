@@ -69,6 +69,15 @@ document.addEventListener('DOMContentLoaded', function() {
   saveWordBtn.addEventListener('click', saveWord);
   cancelWordBtn.addEventListener('click', showHomeContainer);
   
+  // Add Event Listener for Enter key in meaning input
+  meaningInput.addEventListener('keydown', function(event) {
+    // Check if the key pressed is Enter
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault(); // Prevent the default action (new line)
+      saveWord(); // Call the save function
+    }
+  });
+  
   // Event Listeners - Create Language
   saveLanguageBtn.addEventListener('click', saveLanguage);
   cancelLanguageBtn.addEventListener('click', showHomeContainer);
@@ -82,6 +91,14 @@ document.addEventListener('DOMContentLoaded', function() {
   updateWordBtn.addEventListener('click', updateWord);
   cancelEditBtn.addEventListener('click', function() {
     showWordDetails(editWordId.value);
+  });
+  
+  // Add Event Listener for Enter key in edit meaning input
+  editMeaningInput.addEventListener('keydown', function(event) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      updateWord();
+    }
   });
   
   // Event Listeners - Search and Filter
