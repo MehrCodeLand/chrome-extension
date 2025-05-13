@@ -579,10 +579,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const wordMeaning = document.createElement('div');
     wordMeaning.className = 'word-meaning';
     
-    // Truncate meaning if it's too long
+    // Truncate meaning if it's too long - restrict to 80 chars for more consistent sizing
     let meaningText = word.meaning;
-    if (meaningText.length > 100) {
-      meaningText = meaningText.substring(0, 100) + '...';
+    if (meaningText.length > 80) {
+      meaningText = meaningText.substring(0, 80) + '...';
     }
     wordMeaning.textContent = meaningText;
     
