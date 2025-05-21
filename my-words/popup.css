@@ -51,6 +51,7 @@ body {
 .header-actions {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .home-icon {
@@ -527,4 +528,26 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
+}
+
+/* Backup and Restore button styles */
+.header-actions .small-btn {
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+#backup-btn {
+  background-color: #4CAF50;
+}
+
+#backup-btn:hover {
+  background-color: #45a049;
+}
+
+#restore-btn {
+  background-color: #2196F3;
+}
+
+#restore-btn:hover {
+  background-color: #0b7dda;
 }

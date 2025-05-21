@@ -53,6 +53,11 @@ document.addEventListener('DOMContentLoaded', function() {
   const practiceSearchInput = document.getElementById('practice-search-input');
   const practiceFilterLanguage = document.getElementById('practice-filter-language');
   
+  // DOM Elements - Backup & Restore
+  const backupBtn = document.getElementById('backup-btn');
+  const restoreBtn = document.getElementById('restore-btn');
+  const restoreFileInput = document.getElementById('restore-file-input');
+  
   // Initialize storage and load data
   initializeStorage(function() {
     loadLanguages();
@@ -117,6 +122,13 @@ document.addEventListener('DOMContentLoaded', function() {
   practiceFilterLanguage.addEventListener('change', function() {
     filterPracticeWords();
   });
+  
+  // Event Listeners - Backup & Restore
+  backupBtn.addEventListener('click', backupData);
+  restoreBtn.addEventListener('click', function() {
+    restoreFileInput.click();
+  });
+  restoreFileInput.addEventListener('change', restoreData);
   
   // Storage and initialization functions
   function initializeStorage(callback) {
@@ -683,6 +695,105 @@ document.addEventListener('DOMContentLoaded', function() {
         });
       }
     });
+  }
+  
+  // Backup and Restore functions
+  function backupData() {
+    // Get all data from storage
+    chrome.storage.sync.get(['words', 'languages', 'practices'], function(result) {
+      // Create a backup object with metadata
+      const backup = {
+        version: '1.0',
+        timestamp: new Date().toISOString(),
+        data: {
+          words: result.words || [],
+          languages: result.languages || [],
+          practices: result.practices || []
+        }
+      };
+      
+      // Convert to JSON string
+      const backupJSON = JSON.stringify(backup, null, 2);
+      
+      // Create a blob and download link
+      const blob = new Blob([backupJSON], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      
+      // Create filename with date
+      const date = new Date();
+      const formattedDate = date.toISOString().split('T')[0];
+      const filename = `wordvault_backup_${formattedDate}.json`;
+      
+      // Create a download link and trigger it
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      
+      // Clean up
+      setTimeout(function() {
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      }, 0);
+    });
+  }
+  
+  function restoreData(event) {
+    const file = event.target.files[0];
+    
+    if (!file) {
+      return;
+    }
+    
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+      try {
+        // Parse the backup file
+        const backup = JSON.parse(e.target.result);
+        
+        // Validate backup structure
+        if (!backup.data || !backup.version) {
+          throw new Error('Invalid backup file format');
+        }
+        
+        // Check for required data structures
+        if (!Array.isArray(backup.data.words) || 
+            !Array.isArray(backup.data.languages) || 
+            !Array.isArray(backup.data.practices)) {
+          throw new Error('Backup file is missing required data');
+        }
+        
+        // Confirm restore action
+        if (confirm('This will replace your current data with the backup. Continue?')) {
+          // Restore the data
+          chrome.storage.sync.set({
+            words: backup.data.words,
+            languages: backup.data.languages,
+            practices: backup.data.practices
+          }, function() {
+            // Reload the UI
+            loadLanguages();
+            alert('Backup restored successfully!');
+            showHomeContainer();
+          });
+        }
+      } catch (error) {
+        alert('Error restoring backup: ' + error.message);
+      }
+      
+      // Reset the file input
+      restoreFileInput.value = '';
+    };
+    
+    reader.onerror = function() {
+      alert('Error reading backup file');
+      // Reset the file input
+      restoreFileInput.value = '';
+    };
+    
+    reader.readAsText(file);
   }
   
   // Utility functions
