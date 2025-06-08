@@ -699,12 +699,12 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Backup and Restore functions
   function backupData() {
-    // Get all data from storage
     chrome.storage.sync.get(['words', 'languages', 'practices'], function(result) {
       // Create a backup object with metadata
       const backup = {
         version: '1.0',
         timestamp: new Date().toISOString(),
+        extension: 'WordVault',
         data: {
           words: result.words || [],
           languages: result.languages || [],
@@ -728,14 +728,17 @@ document.addEventListener('DOMContentLoaded', function() {
       const a = document.createElement('a');
       a.href = url;
       a.download = filename;
+      a.style.display = 'none';
       document.body.appendChild(a);
       a.click();
       
       // Clean up
-      setTimeout(function() {
+      setTimeout(() => {
         document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-      }, 0);
+        URL.revokeObjectURL(url);
+      }, 100);
+      
+      console.log('Backup created successfully');
     });
   }
   
@@ -743,6 +746,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const file = event.target.files[0];
     
     if (!file) {
+      console.log('No file selected');
+      return;
+    }
+    
+    // Validate file type
+    if (!file.name.endsWith('.json')) {
+      alert('Please select a valid JSON backup file');
+      restoreFileInput.value = '';
       return;
     }
     
@@ -750,50 +761,112 @@ document.addEventListener('DOMContentLoaded', function() {
     
     reader.onload = function(e) {
       try {
-        // Parse the backup file
-        const backup = JSON.parse(e.target.result);
+        console.log('Reading backup file...');
         
-        // Validate backup structure
-        if (!backup.data || !backup.version) {
-          throw new Error('Invalid backup file format');
+        // Parse the backup file
+        const backupContent = e.target.result;
+        
+        if (!backupContent || typeof backupContent !== 'string') {
+          throw new Error('Invalid file content - file appears to be empty or corrupted');
         }
         
-        // Check for required data structures
-        if (!Array.isArray(backup.data.words) || 
-            !Array.isArray(backup.data.languages) || 
-            !Array.isArray(backup.data.practices)) {
-          throw new Error('Backup file is missing required data');
+        const backup = JSON.parse(backupContent);
+        console.log('Backup parsed successfully:', backup);
+        
+        // Enhanced validation of backup structure
+        if (!backup || typeof backup !== 'object') {
+          throw new Error('Invalid backup file format - not a valid JSON object');
+        }
+        
+        if (!backup.data || typeof backup.data !== 'object') {
+          throw new Error('Backup file is missing data section');
+        }
+        
+        // Validate required arrays with fallbacks
+        const words = Array.isArray(backup.data.words) ? backup.data.words : [];
+        const languages = Array.isArray(backup.data.languages) ? backup.data.languages : [{ id: 'general', name: 'General' }];
+        const practices = Array.isArray(backup.data.practices) ? backup.data.practices : [];
+        
+        console.log('Backup validation passed:', {
+          words: words.length,
+          languages: languages.length,
+          practices: practices.length
+        });
+        
+        // Validate data integrity
+        if (words.length > 0) {
+          // Check if words have required properties
+          const sampleWord = words[0];
+          if (!sampleWord.id || !sampleWord.word) {
+            throw new Error('Words data appears to be corrupted - missing required fields');
+          }
+        }
+        
+        if (languages.length > 0) {
+          // Check if languages have required properties
+          const sampleLanguage = languages[0];
+          if (!sampleLanguage.id || !sampleLanguage.name) {
+            throw new Error('Languages data appears to be corrupted - missing required fields');
+          }
         }
         
         // Confirm restore action
-        if (confirm('This will replace your current data with the backup. Continue?')) {
-          // Restore the data
-          chrome.storage.sync.set({
-            words: backup.data.words,
-            languages: backup.data.languages,
-            practices: backup.data.practices
-          }, function() {
-            // Reload the UI
-            loadLanguages();
-            alert('Backup restored successfully!');
-            showHomeContainer();
+        const confirmMessage = `This will replace your current data with the backup.\n\nBackup contains:\n• ${words.length} words\n• ${languages.length} languages\n• ${practices.length} practice records\n\nDo you want to continue?`;
+        
+        if (confirm(confirmMessage)) {
+          console.log('User confirmed restore operation');
+          
+          // Clear existing storage first, then restore
+          chrome.storage.sync.clear(() => {
+            if (chrome.runtime.lastError) {
+              console.error('Error clearing storage:', chrome.runtime.lastError);
+              alert('Error clearing existing data. Please try again.');
+              return;
+            }
+            
+            console.log('Storage cleared, restoring data...');
+            
+            // Restore the data
+            chrome.storage.sync.set({
+              words: words,
+              languages: languages,
+              practices: practices
+            }, function() {
+              if (chrome.runtime.lastError) {
+                console.error('Error restoring data:', chrome.runtime.lastError);
+                alert('Error restoring backup data. Please try again.');
+                return;
+              }
+              
+              console.log('Backup restored successfully');
+              
+              // Reload the UI
+              loadLanguages();
+              alert(`Backup restored successfully!\n\nRestored:\n• ${words.length} words\n• ${languages.length} languages\n• ${practices.length} practice records`);
+              showHomeContainer();
+            });
           });
+        } else {
+          console.log('User cancelled restore operation');
         }
+        
       } catch (error) {
-        alert('Error restoring backup: ' + error.message);
+        console.error('Error parsing/restoring backup:', error);
+        alert('Error restoring backup: ' + error.message + '\n\nPlease make sure you selected a valid WordVault backup file.');
       }
       
       // Reset the file input
       restoreFileInput.value = '';
     };
     
-    reader.onerror = function() {
-      alert('Error reading backup file');
-      // Reset the file input
+    reader.onerror = function(error) {
+      console.error('Error reading file:', error);
+      alert('Error reading backup file. Please try again with a different file.');
       restoreFileInput.value = '';
     };
     
-    reader.readAsText(file);
+    // Read the file as text
+    reader.readAsText(file, 'UTF-8');
   }
   
   // Utility functions

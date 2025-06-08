@@ -46,12 +46,16 @@ body {
   color: var(--font-color);
   font-weight: 700;
   letter-spacing: 1px;
+  flex-shrink: 0;
 }
 
 .header-actions {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  min-width: 0;
 }
 
 .header-btn {
@@ -69,6 +73,7 @@ body {
   align-items: center;
   gap: 4px;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .header-btn:hover {
@@ -88,21 +93,15 @@ body {
   height: 14px;
 }
 
-/* Special colors for backup and restore buttons */
-#backup-btn {
-  background-color: #4CAF50;
-}
-
-#backup-btn:hover {
-  background-color: #45a049;
-}
-
+/* All buttons use the same orange color now */
+#backup-btn,
 #restore-btn {
-  background-color: #2196F3;
+  background-color: var(--button-color);
 }
 
+#backup-btn:hover,
 #restore-btn:hover {
-  background-color: #0b7dda;
+  background-color: #c96549;
 }
 
 .content-container {
@@ -554,6 +553,30 @@ body {
 
 .hidden {
   display: none;
+}
+
+/* Responsive header for smaller screens */
+@media (max-width: 380px) {
+  .header {
+    flex-direction: column;
+    gap: 8px;
+    align-items: stretch;
+  }
+  
+  .header h1 {
+    text-align: center;
+    margin-bottom: 5px;
+  }
+  
+  .header-actions {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  
+  .header-btn {
+    font-size: 11px;
+    padding: 5px 8px;
+  }
 }
 
 /* Scrollbar styling */
