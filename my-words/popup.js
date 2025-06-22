@@ -58,10 +58,68 @@ document.addEventListener('DOMContentLoaded', function() {
   const restoreBtn = document.getElementById('restore-btn');
   const restoreFileInput = document.getElementById('restore-file-input');
   
+  // DOM Elements - Storage Modal
+  const storageManagementBtn = document.getElementById('storage-management-btn');
+  const storageModal = document.getElementById('storage-modal');
+  const storageCloseBtn = document.getElementById('storage-close-btn');
+  const modalCompactBtn = document.getElementById('modal-compact-btn');
+  const modalMigrateBtn = document.getElementById('modal-migrate-btn');
+  const modalSyncBtn = document.getElementById('modal-sync-btn');
+  const storageTypeBadge = document.getElementById('storage-type-badge');
+  const storageUsageDisplay = document.getElementById('storage-usage-display');
+  const storageUsageFill = document.getElementById('storage-usage-fill');
+  const dataSummary = document.getElementById('data-summary');
+  const syncExplanation = document.getElementById('sync-explanation');
+  
+  // Storage Manager Class
+  class StorageManager {
+    constructor() {
+      this.storageType = 'sync';
+      this.initialized = false;
+    }
+    
+    async init() {
+      return new Promise((resolve) => {
+        chrome.storage.sync.get(['usingLocalStorage'], (result) => {
+          this.storageType = result.usingLocalStorage ? 'local' : 'sync';
+          this.initialized = true;
+          console.log('Storage manager initialized, using:', this.storageType);
+          resolve();
+        });
+      });
+    }
+    
+    getStorage() {
+      return this.storageType === 'local' ? chrome.storage.local : chrome.storage.sync;
+    }
+    
+    get(keys, callback) {
+      this.getStorage().get(keys, callback);
+    }
+    
+    set(items, callback) {
+      this.getStorage().set(items, callback);
+    }
+    
+    getBytesInUse(callback) {
+      this.getStorage().getBytesInUse(null, callback);
+    }
+    
+    clear(callback) {
+      this.getStorage().clear(callback);
+    }
+  }
+  
+  // Initialize storage manager
+  const storageManager = new StorageManager();
+  
   // Initialize storage and load data
   initializeStorage(function() {
     loadLanguages();
   });
+  
+  // Initialize storage manager
+  storageManager.init();
   
   // Event Listeners - Navigation
   createBtn.addEventListener('click', showCreateContainer);
@@ -71,15 +129,14 @@ document.addEventListener('DOMContentLoaded', function() {
   addLanguageBtn.addEventListener('click', showLanguageContainer);
   
   // Event Listeners - Create Word
-  saveWordBtn.addEventListener('click', saveWord);
+  saveWordBtn.addEventListener('click', saveWordWithStorageCheck);
   cancelWordBtn.addEventListener('click', showHomeContainer);
   
   // Add Event Listener for Enter key in meaning input
   meaningInput.addEventListener('keydown', function(event) {
-    // Check if the key pressed is Enter
     if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault(); // Prevent the default action (new line)
-      saveWord(); // Call the save function
+      event.preventDefault();
+      saveWordWithStorageCheck();
     }
   });
   
@@ -130,46 +187,130 @@ document.addEventListener('DOMContentLoaded', function() {
   });
   restoreFileInput.addEventListener('change', restoreData);
   
-  // Storage and initialization functions
-  function initializeStorage(callback) {
-    chrome.storage.sync.get(['words', 'languages', 'practices'], function(result) {
-      let updates = {};
-      let needsUpdate = false;
-      
-      if (!result.words) {
-        updates.words = [];
-        needsUpdate = true;
-        console.log('Initializing words array');
-      }
-      
-      if (!result.languages) {
-        updates.languages = [
-          { id: 'general', name: 'General' }
-        ];
-        needsUpdate = true;
-        console.log('Initializing languages with default');
-      }
-      
-      if (!result.practices) {
-        updates.practices = [];
-        needsUpdate = true;
-        console.log('Initializing practices array');
-      }
-      
-      if (needsUpdate) {
-        chrome.storage.sync.set(updates, function() {
-          console.log('Storage initialized');
-          if (callback) callback();
-        });
-      } else {
-        console.log('Storage already initialized');
-        if (callback) callback();
+  // Event Listeners - Storage Modal
+  if (storageManagementBtn) {
+    storageManagementBtn.addEventListener('click', showStorageModal);
+  }
+  
+  if (storageCloseBtn) {
+    storageCloseBtn.addEventListener('click', hideStorageModal);
+  }
+  
+  if (storageModal) {
+    storageModal.addEventListener('click', function(e) {
+      if (e.target === storageModal) {
+        hideStorageModal();
       }
     });
   }
   
-  // Words functions
-  function saveWord() {
+  if (modalCompactBtn) {
+    modalCompactBtn.addEventListener('click', compactStorage);
+  }
+  
+  if (modalMigrateBtn) {
+    modalMigrateBtn.addEventListener('click', function() {
+      if (storageManager.storageType === 'sync') {
+        migrateToLocalStorage();
+      } else {
+        migrateToSyncStorage();
+      }
+    });
+  }
+  
+  if (modalSyncBtn) {
+    modalSyncBtn.addEventListener('click', migrateToSyncStorage);
+  }
+  
+  // Storage quota checking
+  function checkStorageQuota() {
+    return new Promise((resolve) => {
+      storageManager.getBytesInUse((bytesInUse) => {
+        const maxBytes = storageManager.storageType === 'sync' ? 102400 : 5242880; // 100KB for sync, 5MB for local
+        const usagePercentage = (bytesInUse / maxBytes) * 100;
+        
+        resolve({
+          bytesInUse,
+          maxBytes,
+          usagePercentage,
+          remainingBytes: maxBytes - bytesInUse,
+          isNearLimit: usagePercentage > 80,
+          isAtLimit: usagePercentage > 95,
+          storageType: storageManager.storageType
+        });
+      });
+    });
+  }
+  
+  // Show Storage Modal
+  function showStorageModal() {
+    updateStorageModalContent();
+    storageModal.classList.remove('hidden');
+  }
+  
+  // Hide Storage Modal
+  function hideStorageModal() {
+    storageModal.classList.add('hidden');
+  }
+  
+  // Update Storage Modal Content
+  function updateStorageModalContent() {
+    checkStorageQuota().then(info => {
+      // Update storage type badge
+      storageTypeBadge.className = `storage-type-indicator ${info.storageType}`;
+      storageTypeBadge.textContent = info.storageType.toUpperCase();
+      
+      // Update storage usage display
+      storageUsageDisplay.innerHTML = `
+        <strong>Used:</strong> ${(info.bytesInUse / 1024).toFixed(1)}KB of ${(info.maxBytes / 1024).toFixed(1)}KB<br>
+        <strong>Available:</strong> ${(info.remainingBytes / 1024).toFixed(1)}KB remaining<br>
+        <strong>Usage:</strong> ${info.usagePercentage.toFixed(1)}% full
+      `;
+      
+      // Update usage bar
+      storageUsageFill.style.width = `${Math.min(info.usagePercentage, 100)}%`;
+      storageUsageFill.className = 'storage-usage-fill';
+      if (info.isAtLimit) {
+        storageUsageFill.classList.add('danger');
+      } else if (info.isNearLimit) {
+        storageUsageFill.classList.add('warning');
+      }
+      
+      // Update button visibility and text
+      if (info.storageType === 'sync') {
+        modalMigrateBtn.classList.remove('hidden');
+        modalSyncBtn.classList.add('hidden');
+        syncExplanation.classList.add('hidden');
+        modalMigrateBtn.innerHTML = '📱 Switch to Local Storage';
+      } else {
+        modalMigrateBtn.classList.add('hidden');
+        modalSyncBtn.classList.remove('hidden');
+        syncExplanation.classList.remove('hidden');
+        modalSyncBtn.innerHTML = '☁️ Switch to Sync Storage';
+      }
+      
+      // Get data summary
+      storageManager.get(['words', 'practices', 'languages'], function(result) {
+        const words = result.words || [];
+        const practices = result.practices || [];
+        const languages = result.languages || [];
+        
+        const totalPractices = practices.reduce((total, practice) => {
+          return total + (practice.practices ? practice.practices.length : 0);
+        }, 0);
+        
+        dataSummary.innerHTML = `
+          <strong>Words:</strong> ${words.length} saved<br>
+          <strong>Languages:</strong> ${languages.length} categories<br>
+          <strong>Practice Sessions:</strong> ${totalPractices} completed<br>
+          <strong>Estimated Space per Word:</strong> ~200 bytes
+        `;
+      });
+    });
+  }
+  
+  // Enhanced save word function with storage checking
+  async function saveWordWithStorageCheck() {
     const word = wordInput.value.trim();
     const meaning = meaningInput.value.trim();
     const languageId = languageSelect.value;
@@ -183,12 +324,30 @@ document.addEventListener('DOMContentLoaded', function() {
       alert('Please enter a meaning');
       return;
     }
-    
-    chrome.storage.sync.get(['words', 'practices'], function(result) {
+
+    // Check storage quota before saving (only for sync storage)
+    if (storageManager.storageType === 'sync') {
+      const storageInfo = await checkStorageQuota();
+      
+      if (storageInfo.isAtLimit) {
+        const switchToLocal = confirm(`Storage quota exceeded! You're using ${storageInfo.usagePercentage.toFixed(1)}% of available space.\n\nWould you like to switch to Local Storage (unlimited space)?\n\nClick OK to switch, or Cancel to manage your current words first.`);
+        if (switchToLocal) {
+          showStorageModal();
+        }
+        return;
+      }
+      
+      if (storageInfo.isNearLimit) {
+        const confirmed = confirm(`Warning: You're using ${storageInfo.usagePercentage.toFixed(1)}% of storage space.\n\nYou have approximately ${Math.floor(storageInfo.remainingBytes / 200)} words remaining.\n\nDo you want to continue?`);
+        if (!confirmed) return;
+      }
+    }
+
+    // Original save logic
+    storageManager.get(['words', 'practices'], function(result) {
       const words = result.words || [];
       const practices = result.practices || [];
       
-      // Create new word object
       const newWord = {
         id: Date.now().toString(),
         word: word,
@@ -197,34 +356,179 @@ document.addEventListener('DOMContentLoaded', function() {
         date: new Date().toISOString()
       };
       
-      // Add word to words array
       words.unshift(newWord);
       
-      // Create practice record for this word
       const newPractice = {
         wordId: newWord.id,
-        practices: [] // Will contain dates when practiced
+        practices: []
       };
       
       practices.push(newPractice);
       
-      // Save to storage
-      chrome.storage.sync.set({ 
+      storageManager.set({ 
         words: words,
         practices: practices 
       }, function() {
-        // Clear inputs
+        if (chrome.runtime.lastError) {
+          alert('Error saving word: ' + chrome.runtime.lastError.message);
+          return;
+        }
+        
         wordInput.value = '';
         meaningInput.value = '';
-        
-        // Show review container with new word
         showReviewContainer();
       });
     });
   }
   
+  // Migration to local storage
+  function migrateToLocalStorage() {
+    const confirmed = confirm('Switch to Local Storage?\n\n✅ Unlimited space (~5MB)\n✅ Store thousands of words\n❌ Data won\'t sync across devices\n\nYour current data will be safely transferred.\n\nContinue?');
+    
+    if (!confirmed) return;
+    
+    // Get all sync data
+    chrome.storage.sync.get(null, function(syncData) {
+      // Save to local storage
+      chrome.storage.local.set(syncData, function() {
+        if (chrome.runtime.lastError) {
+          alert('Migration failed: ' + chrome.runtime.lastError.message);
+          return;
+        }
+        
+        // Clear sync storage
+        chrome.storage.sync.clear(function() {
+          // Set a flag to indicate we're using local storage
+          chrome.storage.sync.set({
+            usingLocalStorage: true,
+            migrationDate: new Date().toISOString()
+          }, function() {
+            storageManager.storageType = 'local';
+            alert('✅ Successfully switched to Local Storage!\n\nYou now have unlimited space for your words.');
+            updateStorageModalContent();
+          });
+        });
+      });
+    });
+  }
+  
+  // Migration to sync storage
+  function migrateToSyncStorage() {
+    // First check data size
+    chrome.storage.local.get(null, function(localData) {
+      delete localData.usingLocalStorage;
+      delete localData.migrationDate;
+      
+      const dataSize = JSON.stringify(localData).length;
+      if (dataSize > 95000) { // Leave some buffer
+        alert('⚠️ Your data is too large for Sync Storage!\n\nSync Storage limit: 100KB\nYour data size: ~' + Math.round(dataSize/1024) + 'KB\n\nPlease delete some words first, or use backup to save your data.');
+        return;
+      }
+      
+      const confirmed = confirm('Switch to Sync Storage?\n\n✅ Syncs across all devices\n✅ Always backed up to cloud\n❌ Limited space (100KB)\n\nYour data will be transferred safely.\n\nContinue?');
+      
+      if (!confirmed) return;
+      
+      // Clear sync storage first
+      chrome.storage.sync.clear(function() {
+        // Save to sync storage
+        chrome.storage.sync.set(localData, function() {
+          if (chrome.runtime.lastError) {
+            alert('Migration failed: ' + chrome.runtime.lastError.message);
+            return;
+          }
+          
+          // Clear local storage
+          chrome.storage.local.clear(function() {
+            storageManager.storageType = 'sync';
+            alert('✅ Successfully switched to Sync Storage!\n\nYour words now sync across all devices.');
+            updateStorageModalContent();
+          });
+        });
+      });
+    });
+  }
+  
+  // Compact storage
+  function compactStorage() {
+    storageManager.get(['words', 'practices'], function(result) {
+      let words = result.words || [];
+      let practices = result.practices || [];
+      
+      const originalSize = JSON.stringify({words, practices}).length;
+      
+      // Remove orphaned practices
+      const wordIds = new Set(words.map(w => w.id));
+      const originalPracticesCount = practices.length;
+      practices = practices.filter(p => wordIds.has(p.wordId));
+      
+      // Trim excessive whitespace
+      words = words.map(word => ({
+        ...word,
+        word: word.word.trim(),
+        meaning: word.meaning.trim()
+      }));
+      
+      const newSize = JSON.stringify({words, practices}).length;
+      const spaceSaved = originalSize - newSize;
+      const practicesRemoved = originalPracticesCount - practices.length;
+      
+      storageManager.set({
+        words: words,
+        practices: practices
+      }, function() {
+        alert(`✅ Storage Compacted!\n\n📊 Space saved: ${(spaceSaved/1024).toFixed(1)}KB\n🗑️ Orphaned records removed: ${practicesRemoved}\n\nYour data is now optimized.`);
+        updateStorageModalContent();
+      });
+    });
+  }
+  
+  // Storage and initialization functions
+  function initializeStorage(callback) {
+    // First check which storage type we're using
+    chrome.storage.sync.get(['usingLocalStorage'], function(result) {
+      const storage = result.usingLocalStorage ? chrome.storage.local : chrome.storage.sync;
+      
+      storage.get(['words', 'languages', 'practices'], function(result) {
+        let updates = {};
+        let needsUpdate = false;
+        
+        if (!result.words) {
+          updates.words = [];
+          needsUpdate = true;
+          console.log('Initializing words array');
+        }
+        
+        if (!result.languages) {
+          updates.languages = [
+            { id: 'general', name: 'General' }
+          ];
+          needsUpdate = true;
+          console.log('Initializing languages with default');
+        }
+        
+        if (!result.practices) {
+          updates.practices = [];
+          needsUpdate = true;
+          console.log('Initializing practices array');
+        }
+        
+        if (needsUpdate) {
+          storage.set(updates, function() {
+            console.log('Storage initialized');
+            if (callback) callback();
+          });
+        } else {
+          console.log('Storage already initialized');
+          if (callback) callback();
+        }
+      });
+    });
+  }
+  
+  // Words functions
   function loadWords(callback) {
-    chrome.storage.sync.get(['words', 'languages'], function(result) {
+    storageManager.get(['words', 'languages'], function(result) {
       const words = result.words || [];
       const languages = result.languages || [];
       
@@ -291,7 +595,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   function showWordDetails(wordId) {
-    chrome.storage.sync.get(['words', 'languages'], function(result) {
+    storageManager.get(['words', 'languages'], function(result) {
       const words = result.words || [];
       const languages = result.languages || [];
       
@@ -340,7 +644,7 @@ document.addEventListener('DOMContentLoaded', function() {
   function showEditWordForm() {
     const wordId = editWordBtn.getAttribute('data-id');
     
-    chrome.storage.sync.get(['words'], function(result) {
+    storageManager.get(['words'], function(result) {
       const words = result.words || [];
       const word = words.find(w => w.id === wordId);
       
@@ -377,7 +681,7 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
     
-    chrome.storage.sync.get(['words'], function(result) {
+    storageManager.get(['words'], function(result) {
       let words = result.words || [];
       
       const index = words.findIndex(w => w.id === wordId);
@@ -394,7 +698,7 @@ document.addEventListener('DOMContentLoaded', function() {
           updatedAt: new Date().toISOString()
         };
         
-        chrome.storage.sync.set({ words: words }, function() {
+        storageManager.set({ words: words }, function() {
           showWordDetails(wordId);
         });
       }
@@ -405,7 +709,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const wordId = deleteWordBtn.getAttribute('data-id');
     
     if (confirm('Are you sure you want to delete this word?')) {
-      chrome.storage.sync.get(['words', 'practices'], function(result) {
+      storageManager.get(['words', 'practices'], function(result) {
         let words = result.words || [];
         let practices = result.practices || [];
         
@@ -415,7 +719,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Remove associated practice data
         practices = practices.filter(p => p.wordId !== wordId);
         
-        chrome.storage.sync.set({ 
+        storageManager.set({ 
           words: words,
           practices: practices 
         }, function() {
@@ -434,7 +738,7 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
     
-    chrome.storage.sync.get(['languages'], function(result) {
+    storageManager.get(['languages'], function(result) {
       const languages = result.languages || [];
       
       // Check if language with same name already exists
@@ -450,7 +754,7 @@ document.addEventListener('DOMContentLoaded', function() {
       
       languages.push(newLanguage);
       
-      chrome.storage.sync.set({ languages: languages }, function() {
+      storageManager.set({ languages: languages }, function() {
         languageInput.value = '';
         loadLanguages();
         showHomeContainer();
@@ -459,7 +763,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   function loadLanguages() {
-    chrome.storage.sync.get(['languages'], function(result) {
+    storageManager.get(['languages'], function(result) {
       const languages = result.languages || [];
       
       // Clear language selects
@@ -515,7 +819,7 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Practice functions
   function loadPracticeWords() {
-    chrome.storage.sync.get(['words', 'languages', 'practices'], function(result) {
+    storageManager.get(['words', 'languages', 'practices'], function(result) {
       const words = result.words || [];
       const languages = result.languages || [];
       const practices = result.practices || [];
@@ -527,7 +831,7 @@ document.addEventListener('DOMContentLoaded', function() {
   function filterPracticeWords(allWords, allLanguages, allPractices) {
     // If parameters not provided, get from storage
     if (!allWords || !allLanguages || !allPractices) {
-      chrome.storage.sync.get(['words', 'languages', 'practices'], function(result) {
+      storageManager.get(['words', 'languages', 'practices'], function(result) {
         const words = result.words || [];
         const languages = result.languages || [];
         const practices = result.practices || [];
@@ -656,7 +960,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   function markWordAsPracticed(wordId, practiceIndex) {
-    chrome.storage.sync.get(['practices'], function(result) {
+    storageManager.get(['practices'], function(result) {
       let practices = result.practices || [];
       
       // Find the practice record for this word
@@ -670,7 +974,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         practices[index].practices.push(new Date().toISOString());
         
-        chrome.storage.sync.set({ practices: practices }, function() {
+        storageManager.set({ practices: practices }, function() {
           // Reload practice UI
           loadPracticeWords();
         });
@@ -679,7 +983,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   function undoPractice(wordId, practiceIndex) {
-    chrome.storage.sync.get(['practices'], function(result) {
+    storageManager.get(['practices'], function(result) {
       let practices = result.practices || [];
       
       // Find the practice record for this word
@@ -689,7 +993,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Remove the last practice entry
         practices[index].practices.pop();
         
-        chrome.storage.sync.set({ practices: practices }, function() {
+        storageManager.set({ practices: practices }, function() {
           // Reload practice UI
           loadPracticeWords();
         });
@@ -699,12 +1003,13 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Backup and Restore functions
   function backupData() {
-    chrome.storage.sync.get(['words', 'languages', 'practices'], function(result) {
+    storageManager.get(['words', 'languages', 'practices'], function(result) {
       // Create a backup object with metadata
       const backup = {
         version: '1.0',
         timestamp: new Date().toISOString(),
         extension: 'WordVault',
+        storageType: storageManager.storageType,
         data: {
           words: result.words || [],
           languages: result.languages || [],
@@ -817,7 +1122,7 @@ document.addEventListener('DOMContentLoaded', function() {
           console.log('User confirmed restore operation');
           
           // Clear existing storage first, then restore
-          chrome.storage.sync.clear(() => {
+          storageManager.clear(() => {
             if (chrome.runtime.lastError) {
               console.error('Error clearing storage:', chrome.runtime.lastError);
               alert('Error clearing existing data. Please try again.');
@@ -827,7 +1132,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Storage cleared, restoring data...');
             
             // Restore the data
-            chrome.storage.sync.set({
+            storageManager.set({
               words: words,
               languages: languages,
               practices: practices
