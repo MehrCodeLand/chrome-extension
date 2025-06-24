@@ -58,6 +58,9 @@ document.addEventListener('DOMContentLoaded', function() {
   const restoreBtn = document.getElementById('restore-btn');
   const restoreFileInput = document.getElementById('restore-file-input');
   
+  // DOM Elements - Get Words
+  const getWordsBtn = document.getElementById('get-words-btn');
+  
   // DOM Elements - Storage Modal
   const storageManagementBtn = document.getElementById('storage-management-btn');
   const storageModal = document.getElementById('storage-modal');
@@ -187,6 +190,9 @@ document.addEventListener('DOMContentLoaded', function() {
   });
   restoreFileInput.addEventListener('change', restoreData);
   
+  // Event Listeners - Get Words
+  getWordsBtn.addEventListener('click', exportWordsAsText);
+  
   // Event Listeners - Storage Modal
   if (storageManagementBtn) {
     storageManagementBtn.addEventListener('click', showStorageModal);
@@ -220,6 +226,46 @@ document.addEventListener('DOMContentLoaded', function() {
   
   if (modalSyncBtn) {
     modalSyncBtn.addEventListener('click', migrateToSyncStorage);
+  }
+  
+  // Get Words Export Function
+  function exportWordsAsText() {
+    storageManager.get(['words'], function(result) {
+      const words = result.words || [];
+      
+      if (words.length === 0) {
+        alert('No words found to export. Add some words first!');
+        return;
+      }
+      
+      // Extract only the word strings and join with " - "
+      const wordsList = words.map(wordObj => wordObj.word.trim()).join(' - ');
+      
+      // Create a blob with the text content
+      const blob = new Blob([wordsList], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      
+      // Create filename with date
+      const date = new Date();
+      const formattedDate = date.toISOString().split('T')[0];
+      const filename = `my_words_${formattedDate}.txt`;
+      
+      // Create a download link and trigger it
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      
+      // Clean up
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 100);
+      
+      console.log(`Words exported: ${words.length} words in text format`);
+    });
   }
   
   // Storage quota checking
@@ -1155,7 +1201,7 @@ document.addEventListener('DOMContentLoaded', function() {
           console.log('User cancelled restore operation');
         }
         
-      } catch (error) {
+              } catch (error) {
         console.error('Error parsing/restoring backup:', error);
         alert('Error restoring backup: ' + error.message + '\n\nPlease make sure you selected a valid WordVault backup file.');
       }
